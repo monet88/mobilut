@@ -1,106 +1,172 @@
-# LUT App — Project Context
+# CLAUDE.md
 
-## Product
+Cross-platform mobile photo grading app for Vietnamese creators. React Native + Expo Router + `@shopify/react-native-skia`. Local-first, no backend in v1.
 
-Cross-platform mobile photo grading app for Vietnamese creators.
-Local-first, no backend in release 1. RAW editing explicitly deferred.
+## Project map
 
-## Stack
+- `app/` — Routes, layouts, navigation wiring only
+- `src/core/` — Pure contracts, domain rules, types
+- `src/features/` — Feature UI, hooks, screen composition
+- `src/services/` — Orchestration layer, preview/export separation
+- `src/adapters/` — Wrappers for Expo modules, Skia runtime, EXIF
+- `src/ui/` — Shared UI components
+- `packages/lut-core/` — LUT parse/validate/serialize/interpolate (pure TS, no RN)
+- `docs/adr/` — Architecture Decision Records
+- `.sisyphus/plans/lut-app-v2.md` — 12-wave execution plan
+- `TODOS.md` — Wave 0–11 checklist
 
-- **Runtime**: React Native + Expo dev-client + Expo Router
-- **Rendering**: `@shopify/react-native-skia` (GPU-first, CPU fallback)
-- **LUT math**: Pure TS package at `packages/lut-core/`
-- **Data**: Local-first, no cloud sync
-- **Ads**: AdMob banners
-- **Localization**: Vietnamese + English
+## Path aliases
 
-## Architecture Rules
+`@core/*`, `@features/*`, `@services/*`, `@adapters/*`, `@ui/*` → `src/` equivalents. `@theme`, `@hooks`, `@lib`, `@i18n` → `src/` singletons. `@lut-core` → `packages/lut-core/src`.
 
-1. **Preview path ≠ export path** — Preview optimized for responsiveness, export for full resolution. Export must never reuse downscaled preview bitmap.
-2. **`.cube` is the interop format** — Import/export `.cube`. Internally may use HaldCLUT PNG or strip textures for Skia.
-3. **Local-first** — All features work offline. Future backend only behind adapter boundaries.
-4. **lut-core is reusable** — `packages/lut-core/` owns all LUT math/parsing. No React Native code inside.
-5. **EditState is immutable and renderer-agnostic** — No Skia types in EditState.
+<important if="you need to run commands to build, test, or develop">
 
-## Module Boundaries (STRICT)
+| Command                | What it does             |
+| ---------------------- | ------------------------ |
+| `npx expo start`       | Start Expo dev server    |
+| `npx expo run:android` | Build and run on Android |
+| `npx expo run:ios`     | Build and run on iOS     |
+| `npx jest`             | Run tests                |
+| `npx tsc --noEmit`     | Type check               |
 
-| Module | Owns | MUST NOT contain |
-|--------|------|------------------|
-| `app/` | Routes, layouts, navigation wiring only | Business logic, parser logic, shader logic |
-| `src/core/` | Pure contracts, domain rules, types | Expo imports, Skia imports, route params |
-| `src/features/` | Feature UI, feature hooks, screen composition | Direct vendor API calls |
-| `src/services/` | Orchestration layer, preview/export separation | UI components |
-| `src/adapters/` | Wrappers for Expo modules, Skia runtime, EXIF | Business logic |
-| `packages/lut-core/` | LUT parse/validate/serialize/interpolate | React Native code, Expo imports |
+</important>
 
-## Path Aliases
+<important if="you are building the preview or export pipeline, or working with image rendering">
+- Preview path ≠ export path — preview optimized for responsiveness, export for full resolution. Export must never reuse downscaled preview bitmap.
+- EditState is immutable and renderer-agnostic — no Skia types in EditState.
+</important>
 
-- `@core/*` → `src/core/*`
-- `@features/*` → `src/features/*`
-- `@services/*` → `src/services/*`
-- `@adapters/*` → `src/adapters/*`
-- `@ui/*` → `src/ui/*`
-- `@theme` → `src/theme`
-- `@hooks` → `src/hooks`
-- `@lib` → `src/lib`
-- `@i18n` → `src/i18n`
-- `@lut-core` → `packages/lut-core/src`
+<important if="you are working with LUT files, .cube parsing, or HaldCLUT">
+- `.cube` is the interop format. Internally may use HaldCLUT PNG or strip textures for Skia.
+- `packages/lut-core/` owns all LUT math/parsing. No React Native code inside.
+</important>
 
-## Key Features (In Scope)
+<important if="you are adding new modules, moving files between directories, or creating new source directories">
 
-- 200+ bundled LUT presets with category browse
-- Full editor: LUT apply, adjustment sliders, rotate, crop, before/after, undo/redo
-- `.cube` import/export (Adobe interop)
-- HaldCLUT PNG import
-- Selected-region effects (geometry masks)
-- Framing toolkit: white border, round edges, tape overlays, manual on-canvas controls
-- Quick Color Copy (offline Reinhard transfer → emits reusable LUT)
-- Watermark frames with EXIF metadata and camera logos
-- Full-resolution export with quality validation
-- PNG/import hardening with explicit error messages
-- Rescue UX for all critical failure modes
+Module boundaries are strict:
 
-## Explicitly Deferred
+| Module               | MUST NOT contain                           |
+| -------------------- | ------------------------------------------ |
+| `app/`               | Business logic, parser logic, shader logic |
+| `src/core/`          | Expo imports, Skia imports, route params   |
+| `src/features/`      | Direct vendor API calls                    |
+| `src/services/`      | UI components                              |
+| `src/adapters/`      | Business logic                             |
+| `packages/lut-core/` | React Native code, Expo imports            |
 
-- RAW decode/edit pipeline
-- Cloud sync, user accounts, community features
-- Live camera preview, batch processing
-- Wide-gamut / P3 beyond documented limitations
+</important>
 
-## Current Progress
+<important if="you are handling errors, writing failure recovery, or implementing import/export flows">
+Every critical failure needs: typed error → user-facing copy → non-crashing recovery → test coverage.
 
-**Wave 0 — Not started.** No code exists yet. Only plan + docs + folder structure docs.
+Critical failures: malformed `.cube`, unsupported LUT size, invalid HaldCLUT PNG dimensions, oversized image import, shader compile/runtime failure, OOM/unsafe export dimensions, export failure/no write permission, EXIF read failure, crop/export quality regression.
+</important>
 
-See `.sisyphus/plans/lut-app-v2.md` for the full 12-wave execution plan.
-See `TODOS.md` for the wave-by-wave checklist.
+<important if="you are deciding what to implement or questioning feature scope">
+- RAW decode/edit, cloud sync, user accounts, live camera preview, batch processing — all deferred
+- All features must work offline
+</important>
 
-## Build Plan Reference
+<!-- gitnexus:start -->
 
-- **Plan**: `.sisyphus/plans/lut-app-v2.md` (966 lines, 12 waves)
-- **TODOs**: `TODOS.md` (Wave 0–11 checklist)
-- **ADRs**: `docs/adr/0001-rendering-pipeline.md`, `docs/adr/0002-lut-asset-bundling.md`
-- **Specs**: `docs/lut-encoding-spec.md` (draft, fields empty)
-- **Brand**: `docs/brand.md` (draft, undecided)
-- **Market**: `docs/market-validation.md` (draft, no data yet)
+# GitNexus — Code Intelligence
 
-## Quality Rules (Non-Negotiable)
+This project is indexed by GitNexus as **mobilut** (607 symbols, 1204 relationships, 42 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-1. No silent import failure
-2. No accidental export downscale
-3. No editor feature that works in preview but not in export
-4. No `.cube` interop that only works for one narrow test file
-5. No RAW work in this plan
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
-## Critical Failure Modes (Must Handle)
+## Always Do
 
-1. Malformed `.cube` file
-2. Unsupported LUT size
-3. Invalid HaldCLUT PNG dimensions
-4. Oversized image import
-5. Shader compile/runtime failure
-6. OOM risk or unsafe export dimensions
-7. Export failure / no write permission
-8. EXIF read failure
-9. Crop/export quality regression
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
 
-Each needs: typed error → user-facing copy → non-crashing recovery → test coverage.
+## When Debugging
+
+1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
+2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
+3. `READ gitnexus://repo/mobilut/process/{processName}` — trace the full execution flow step by step
+4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
+
+## When Refactoring
+
+- **Renaming**: MUST use `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` first. Review the preview — graph edits are safe, text_search edits need manual review. Then run with `dry_run: false`.
+- **Extracting/Splitting**: MUST run `gitnexus_context({name: "target"})` to see all incoming/outgoing refs, then `gitnexus_impact({target: "target", direction: "upstream"})` to find all external callers before moving code.
+- After any refactor: run `gitnexus_detect_changes({scope: "all"})` to verify only expected files changed.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+
+## Tools Quick Reference
+
+| Tool             | When to use                   | Command                                                                 |
+| ---------------- | ----------------------------- | ----------------------------------------------------------------------- |
+| `query`          | Find code by concept          | `gitnexus_query({query: "auth validation"})`                            |
+| `context`        | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})`                              |
+| `impact`         | Blast radius before editing   | `gitnexus_impact({target: "X", direction: "upstream"})`                 |
+| `detect_changes` | Pre-commit scope check        | `gitnexus_detect_changes({scope: "staged"})`                            |
+| `rename`         | Safe multi-file rename        | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
+| `cypher`         | Custom graph queries          | `gitnexus_cypher({query: "MATCH ..."})`                                 |
+
+## Impact Risk Levels
+
+| Depth | Meaning                               | Action                |
+| ----- | ------------------------------------- | --------------------- |
+| d=1   | WILL BREAK — direct callers/importers | MUST update these     |
+| d=2   | LIKELY AFFECTED — indirect deps       | Should test           |
+| d=3   | MAY NEED TESTING — transitive         | Test if critical path |
+
+## Resources
+
+| Resource                                 | Use for                                  |
+| ---------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/mobilut/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/mobilut/clusters`       | All functional areas                     |
+| `gitnexus://repo/mobilut/processes`      | All execution flows                      |
+| `gitnexus://repo/mobilut/process/{name}` | Step-by-step execution trace             |
+
+## Self-Check Before Finishing
+
+Before completing any code modification task, verify:
+
+1. `gitnexus_impact` was run for all modified symbols
+2. No HIGH/CRITICAL risk warnings were ignored
+3. `gitnexus_detect_changes()` confirms changes match expected scope
+4. All d=1 (WILL BREAK) dependents were updated
+
+## Keeping the Index Fresh
+
+After committing code changes, the GitNexus index becomes stale. Re-run analyze to update it:
+
+```bash
+npx gitnexus analyze
+```
+
+If the index previously included embeddings, preserve them by adding `--embeddings`:
+
+```bash
+npx gitnexus analyze --embeddings
+```
+
+To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.embeddings` field shows the count (0 means no embeddings). **Running analyze without `--embeddings` will delete any previously generated embeddings.**
+
+> Claude Code users: A PostToolUse hook handles this automatically after `git commit` and `git merge`.
+
+## CLI
+
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+
+<!-- gitnexus:end -->
