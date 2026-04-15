@@ -5,4 +5,9 @@
 .env
 .env.local
 .sisyphus
-.omx/state/*
+.omx/state/
+.omx/logs/
+.memsearch/
+.omx\hud-config.json
+.omx\metrics.json
+.omx\setup-scope.json
