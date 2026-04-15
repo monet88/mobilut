@@ -11,3 +11,4 @@
 .omx\hud-config.json
 .omx\metrics.json
 .omx\setup-scope.json
+node_modules

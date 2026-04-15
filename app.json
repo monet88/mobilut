@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "LUT App",
+    "slug": "lut-app",
+    "scheme": "lutapp",
+    "platforms": ["ios", "android"],
+    "plugins": ["expo-router", "expo-dev-client"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

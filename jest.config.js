@@ -1,0 +1,25 @@
+module.exports = {
+  preset: 'jest-expo',
+  roots: ['<rootDir>/__tests__', '<rootDir>/src', '<rootDir>/packages/lut-core/src'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))',
+  ],
+  moduleNameMapper: {
+    '^@core/(.*)$': '<rootDir>/src/core/$1',
+    '^@features/(.*)$': '<rootDir>/src/features/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
+    '^@adapters/(.*)$': '<rootDir>/src/adapters/$1',
+    '^@ui/(.*)$': '<rootDir>/src/ui/$1',
+    '^@theme$': '<rootDir>/src/theme',
+    '^@theme/(.*)$': '<rootDir>/src/theme/$1',
+    '^@hooks$': '<rootDir>/src/hooks',
+    '^@hooks/(.*)$': '<rootDir>/src/hooks/$1',
+    '^@lib$': '<rootDir>/src/lib',
+    '^@lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^@i18n$': '<rootDir>/src/i18n',
+    '^@i18n/(.*)$': '<rootDir>/src/i18n/$1',
+    '^@lut-core$': '<rootDir>/packages/lut-core/src',
+    '^@lut-core/(.*)$': '<rootDir>/packages/lut-core/src/$1',
+  },
+};
