@@ -2,10 +2,16 @@ import React from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { PreviewCanvas } from '@adapters/skia/preview-canvas';
+import type { AdjustmentParams } from '@core/edit-session/edit-state';
+import { ExportImageScreen } from '@features/export-image';
+import { PresetBrowser, usePresetBrowser } from '@features/preset-browser';
 import { Button, Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
 
 import { BeforeAfter } from './before-after';
+import { AdjustmentPanel } from './components/adjustment-panel';
+import { CropOverlay } from './components/crop-overlay';
+import { RotateControls } from './components/rotate-controls';
 import { useEditorSession } from './use-editor-session';
 
 interface EditorScreenProps {
@@ -22,17 +28,45 @@ export function EditorScreen({
   assetHeight = 1080,
 }: EditorScreenProps): React.JSX.Element {
   const { width: windowWidth } = useWindowDimensions();
-  const { editState, canUndo, canRedo, undo, redo } = useEditorSession(
+  const { editState, canUndo, canRedo, undo, redo, dispatch } = useEditorSession(
     assetId,
     assetUri,
     assetWidth,
     assetHeight,
   );
+  const {
+    presets,
+    categories,
+    selectedCategory,
+    setSelectedCategory,
+    selectedPresetId,
+    setSelectedPresetId,
+    isLoading: isLoadingPresets,
+  } = usePresetBrowser();
 
   const previewWidth = Math.max(200, Math.min(windowWidth - spacing.lg * 2, 360));
   const aspectRatio = editState.assetHeight > 0 ? editState.assetWidth / editState.assetHeight : 1;
   const previewHeight = Math.max(200, Math.round(previewWidth / aspectRatio));
   const hasAsset = editState.assetUri.length > 0;
+
+  React.useEffect(() => {
+    setSelectedPresetId(editState.selectedPresetId);
+  }, [editState.selectedPresetId, setSelectedPresetId]);
+
+  const handleSelectPreset = React.useCallback(
+    (presetId: string) => {
+      setSelectedPresetId(presetId);
+      dispatch({ type: 'SELECT_PRESET', presetId });
+    },
+    [dispatch, setSelectedPresetId],
+  );
+
+  const handleAdjustmentChange = React.useCallback(
+    (adjustments: Partial<AdjustmentParams>) => {
+      dispatch({ type: 'SET_ADJUSTMENTS', adjustments });
+    },
+    [dispatch],
+  );
 
   return (
     <ScrollView
@@ -91,6 +125,37 @@ export function EditorScreen({
           <Button label="Redo" onPress={redo} disabled={!canRedo} variant="secondary" />
         </View>
       </View>
+
+      <View style={styles.section}>
+        <Text variant="label">Presets</Text>
+        <PresetBrowser
+          presets={presets}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          selectedPresetId={selectedPresetId}
+          isLoading={isLoadingPresets}
+          onSelectCategory={setSelectedCategory}
+          onSelectPreset={handleSelectPreset}
+        />
+      </View>
+
+      <AdjustmentPanel
+        adjustments={editState.adjustments}
+        onChangeAdjustments={handleAdjustmentChange}
+      />
+
+      <RotateControls
+        rotation={editState.rotation}
+        onRotateClockwise={() => dispatch({ type: 'ROTATE_CW' })}
+        onRotateCounterClockwise={() => dispatch({ type: 'ROTATE_CCW' })}
+      />
+
+      <CropOverlay
+        crop={editState.crop}
+        onChangeCrop={(crop) => dispatch({ type: 'SET_CROP', crop })}
+      />
+
+      <ExportImageScreen editState={editState} />
     </ScrollView>
   );
 }

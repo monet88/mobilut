@@ -1,3 +1,45 @@
 {
-  "presets": []
+  "version": 1,
+  "presets": [
+    {
+      "id": "cinematic-01",
+      "name": "Cinematic Teal",
+      "category": "cinematic",
+      "thumbnailPath": "assets/presets/thumbnails/cinematic-01.jpg",
+      "haldPath": "assets/presets/hald/cinematic-01.png",
+      "isPremium": false
+    },
+    {
+      "id": "portrait-01",
+      "name": "Warm Portrait",
+      "category": "portrait",
+      "thumbnailPath": "assets/presets/thumbnails/portrait-01.jpg",
+      "haldPath": "assets/presets/hald/portrait-01.png",
+      "isPremium": false
+    },
+    {
+      "id": "vintage-01",
+      "name": "Film Grain",
+      "category": "vintage",
+      "thumbnailPath": "assets/presets/thumbnails/vintage-01.jpg",
+      "haldPath": "assets/presets/hald/vintage-01.png",
+      "isPremium": false
+    },
+    {
+      "id": "moody-01",
+      "name": "Dark Moody",
+      "category": "moody",
+      "thumbnailPath": "assets/presets/thumbnails/moody-01.jpg",
+      "haldPath": "assets/presets/hald/moody-01.png",
+      "isPremium": false
+    },
+    {
+      "id": "bw-01",
+      "name": "Classic B&W",
+      "category": "black-and-white",
+      "thumbnailPath": "assets/presets/thumbnails/bw-01.jpg",
+      "haldPath": "assets/presets/hald/bw-01.png",
+      "isPremium": false
+    }
+  ]
 }

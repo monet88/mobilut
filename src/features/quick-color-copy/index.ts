@@ -1,3 +1,3 @@
-// features/quick-color-copy — placeholder barrel export
-// TODO: export module contents as they are implemented
-export {};
+export * from './quick-color-copy.screen';
+export * from './reinhard-transfer';
+export * from './use-quick-color-copy';

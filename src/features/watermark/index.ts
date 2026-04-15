@@ -1,3 +1,2 @@
-// features/watermark — placeholder barrel export
-// TODO: export module contents as they are implemented
-export {};
+export * from './watermark-panel';
+export * from './use-watermark';
