@@ -1,0 +1,85 @@
+{
+  "active_context": [
+    {
+      "order": 3,
+      "path": "_index.md",
+      "tokens": 734,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "product_strategy/_index.md",
+      "tokens": 187,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "technology/_index.md",
+      "tokens": 601,
+      "type": "summary"
+    },
+    {
+      "order": 1,
+      "path": "product_strategy/lut_pricing_and_branding/_index.md",
+      "tokens": 163,
+      "type": "summary"
+    },
+    {
+      "order": 0,
+      "path": "technology/graphics/lut_rendering_pipeline/_index.md",
+      "tokens": 220,
+      "type": "summary"
+    },
+    {
+      "importance": 50,
+      "path": "product_strategy/lut_pricing_and_branding/lut_pricing_and_naming_decisions.md",
+      "tokens": 600,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "technology/context.md",
+      "tokens": 152,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "technology/graphics/context.md",
+      "tokens": 76,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "technology/graphics/cube_to_haldclut_conversion_tool.md",
+      "tokens": 630,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "technology/graphics/lut_conversion_tools/cube_to_hald_conversion_tool.md",
+      "tokens": 719,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "technology/graphics/lut_mobile_tech_stack.md",
+      "tokens": 548,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "technology/graphics/lut_rendering_pipeline/mobile_lut_rendering_pipeline.md",
+      "tokens": 525,
+      "type": "context"
+    }
+  ],
+  "generated_at": "2026-04-14T10:19:29.207Z",
+  "lane_tokens": {
+    "contexts": 3250,
+    "stubs": 0,
+    "summaries": 1905
+  },
+  "source_fingerprint": "be25e906929017e070b9697158177e358b2fe1fa4a419c0b1e84b3c6c6714d60",
+  "total_tokens": 5155,
+  "version": 1
+}
