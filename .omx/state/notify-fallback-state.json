@@ -1,7 +1,7 @@
 {
-  "pid": 41500,
+  "pid": 24548,
   "parent_pid": 45716,
-  "started_at": "2026-04-15T14:33:42.318Z",
+  "started_at": "2026-04-15T14:33:59.490Z",
   "cwd": "F:\\CodeBase\\mobile\\lut-app",
   "notify_script": "C:\\Users\\monet\\AppData\\Roaming\\npm\\node_modules\\oh-my-codex\\dist\\scripts\\notify-hook.js",
   "authority_only": true,
@@ -17,7 +17,7 @@
     "max_per_tick": 5,
     "run_count": 1,
     "leader_only": true,
-    "last_tick_at": "2026-04-15T14:33:42.322Z",
+    "last_tick_at": "2026-04-15T14:33:59.494Z",
     "last_result": {
       "processed": 0,
       "skipped": 0,
@@ -30,7 +30,7 @@
     "leader_only": true,
     "stale_threshold_ms": 180000,
     "precomputed_leader_stale": false,
-    "last_tick_at": "2026-04-15T14:33:42.324Z",
+    "last_tick_at": "2026-04-15T14:33:59.496Z",
     "last_error": null,
     "run_count": 1
   },
@@ -57,7 +57,7 @@
   "fallback_auto_nudge": {
     "enabled": true,
     "stall_ms": 5000,
-    "last_tick_at": "2026-04-15T14:33:42.329Z",
+    "last_tick_at": "2026-04-15T14:33:59.503Z",
     "last_turn_at": "2026-04-15T07:36:24.711Z",
     "last_turn_count": 1,
     "last_message": "Đã check nhanh repo và plan hiện tại.\n\n## 1) Plan hiện tại đang ở trạng thái nào?\n**Tính đến ngày 20",
@@ -79,8 +79,8 @@
     "base_ms": 75,
     "max_ms": 1000,
     "current_ms": 1000,
-    "idle_streak": 8,
-    "last_tick_at": "2026-04-15T14:33:42.335Z",
+    "idle_streak": 25,
+    "last_tick_at": "2026-04-15T14:33:59.513Z",
     "last_activity_at": "2026-04-15T14:33:34.279Z",
     "last_activity_reason": "eligible_but_not_sent"
   },
