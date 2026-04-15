@@ -2,15 +2,15 @@
 
 ## TL;DR
 
-> **Quick Summary**: Build a mobile photo color grading app for Vietnamese creators with 50-100 free LUTs, core editing tools, AI-powered style transfer (Gemini API) as PRO subscription feature, and AdMob banner ads for free users. React Native + Expo dev-client + Skia, both Android + iOS.
+> **Quick Summary**: Build a mobile photo color grading app for Vietnamese creators with 200+ free LUTs, core editing tools (crop, border radius, white border), watermark frames with EXIF metadata, Quick Color Copy (offline Reinhard transfer), and AdMob banner ads for all users. React Native + Expo dev-client + Skia, both Android + iOS.
 > 
 > **Deliverables**:
 > - Cross-platform mobile app (Android + iOS)
-> - 50-100 bundled free LUTs with category browse
-> - Full editor: LUT apply, brightness/contrast/saturation/temperature/sharpen, crop, undo/redo, before/after, export
-> - AI style transfer via Gemini API (PRO subscription)
-> - Subscription monetization (monthly/yearly/lifetime) via RevenueCat
-> - AdMob banner ads (free tier)
+> - 200+ bundled free LUTs with category browse
+> - Full editor: LUT apply, brightness/contrast/saturation/temperature/sharpen, crop, border radius, white border, undo/redo, before/after, export
+> - Watermark frames: EXIF metadata display with camera brand logos
+> - Quick Color Copy: create filter from any reference photo (offline Reinhard transfer)
+> - AdMob banner ads (all users)
 > - Vietnamese + English localization
 > 
 > **Estimated Effort**: XL (8-12 weeks)
@@ -33,9 +33,9 @@ User has an existing PRD (`.omx/plans/prd-lut-app-de-risked-build-20260415T03472
 **Key Discussions**:
 - Phase 0 skip: User will use free .cube downloads, validate market post-launch
 - Cross-platform: React Native = code once, test both. "Android first" = store submission order only
-- LUT source: 50-100 free .cube files from internet, converted to PNG via existing `tools/cube_to_hald.py`
-- AI feature: User picks reference photo → Gemini API analyzes style → generates matching LUT for target photo
-- Monetization: Free (all features + ads) vs PRO (AI style transfer + no ads) via subscription
+- LUT source: 200+ free LUT assets from internet/open collections, converted to PNG via existing `tools/cube_to_hald.py`
+- Quick Color Copy: User picks reference photo → app generates matching LUT on-device via Reinhard color transfer
+- Monetization: 100% free app with AdMob banner ads only. Pivoted from subscription — AI style transfer deferred to Phase 2.
 - App name: placeholder for now, decide before store submission
 - Test strategy: TDD (test first)
 
@@ -69,16 +69,17 @@ User has an existing PRD (`.omx/plans/prd-lut-app-de-risked-build-20260415T03472
 ## Work Objectives
 
 ### Core Objective
-Ship a cross-platform (Android + iOS) photo color grading app with free LUTs, full editor, and AI-powered PRO style transfer subscription.
+Ship a cross-platform (Android + iOS) photo color grading app with free LUTs, full editor, Quick Color Copy (offline Reinhard transfer), watermark frames, and AdMob banner ads for all users.
 
 ### Concrete Deliverables
 - Runnable app on Android emulator/device + iOS Simulator
 - `packages/lut-core/` — reusable LUT parsing/encoding/interpolation library (TDD)
 - Custom SKSL shader for GPU LUT rendering + CPU fallback
-- 50-100 categorized free LUTs bundled as assets
-- Full editor: LUT apply, 5 adjustment sliders, crop, undo/redo, before/after, export
-- AI style transfer service (Gemini API) behind PRO subscription
-- RevenueCat subscription flow (monthly/yearly/lifetime)
+- 200+ categorized free LUTs bundled as assets
+- Full editor: LUT apply, 5 adjustment sliders, crop, border radius, white border, undo/redo, before/after, export
+- Quick Color Copy: offline Reinhard color transfer from reference photos
+- Watermark frames with EXIF metadata and camera brand logos
+- Border radius + white border tools
 - AdMob banner integration
 - Vietnamese + English localization
 - Rescue UX for all critical failure modes
@@ -88,8 +89,10 @@ Ship a cross-platform (Android + iOS) photo color grading app with free LUTs, fu
 - [ ] App builds and runs on Android emulator + iOS Simulator
 - [ ] Identity LUT round-trip test passes (GPU and CPU paths)
 - [ ] Pick photo → apply LUT → adjust → compare → export works end-to-end
-- [ ] AI style transfer returns usable LUT from reference photo
-- [ ] Subscription purchase + restore works in sandbox
+- [ ] Quick Color Copy generates LUT from reference photo on-device
+- [ ] Watermark frame renders EXIF data on exported image
+- [ ] Border radius and white border tools work in editor
+- [ ] 200+ LUT entries bundled and browsable
 - [ ] AdMob banner renders correctly
 - [ ] All 6 critical failure modes have rescue UX
 - [ ] TDD test suite passes with 80%+ coverage
@@ -99,8 +102,10 @@ Ship a cross-platform (Android + iOS) photo color grading app with free LUTs, fu
 ### Must Have
 - LUT rendering correctness (identity round-trip)
 - GPU rendering + CPU fallback with documented parity tolerance
-- AI style transfer via Gemini API
-- Subscription gating for PRO features
+- Quick Color Copy (offline Reinhard transfer from reference photo)
+- Watermark frames with EXIF + camera logos
+- Border radius + white border
+- 200+ free LUT catalog
 - Rescue UX for shader compile failure, malformed LUT, OOM, export failure
 - Both platform support from day 1
 - Dark-first UI theme
@@ -108,8 +113,8 @@ Ship a cross-platform (Android + iOS) photo color grading app with free LUTs, fu
 ### Must NOT Have (Guardrails)
 - NO Expo Go — must use dev-client/prebuild (native modules required)
 - NO Graphite backend for Skia (experimental, not production-ready)
-- NO embedded Gemini API key in app binary (use restricted key or proxy)
-- NO local boolean for purchase state (RevenueCat SDK-backed entitlement only)
+- NO cloud API dependency for color copy (must work 100% offline)
+- NO subscription or paywall (ads-only monetization for MVP)
 - NO paid/free LUT split (all LUTs are free)
 - NO batch processing, live camera preview, community features (deferred)
 - NO wide-gamut/P3 color space handling (assume sRGB, document limitation)
@@ -133,8 +138,8 @@ Evidence saved to `.sisyphus/evidence/task-{N}-{scenario-slug}.{ext}`.
 
 - **LUT rendering**: Bash — identity round-trip fixture comparison
 - **Editor UI**: Playwright or Detox — navigate, interact, assert
-- **AI feature**: Bash (curl) — send test image to Gemini API, assert structured response
-- **Subscription**: Detox — sandbox purchase flow
+- **Quick Color Copy**: Bash (Jest) — run Reinhard transfer against reference/target fixtures, assert generated LUT output
+- **Ads**: Detox — verify AdMob banner renders for all users on approved surfaces
 - **API/Services**: Bash (Jest) — unit test assertions
 
 ---
@@ -153,12 +158,11 @@ Wave 1 (Foundation — 7 parallel tasks):
 ├── T6: Type definitions + contracts (EditState, LUTEngine, etc.) [quick]
 └── T7: Theme system (dark-first tokens + base components) [visual-engineering]
 
-Wave 2 (Rendering Engine — 6 parallel tasks, after Wave 1):
+Wave 2 (Rendering Engine — 5 parallel tasks, after Wave 1):
 ├── T8:  SKSL shader + supersampling (depends: T5, T6) [ultrabrain]
 ├── T9:  CPU fallback LUTEngine (depends: T3, T4, T5, T6) [deep]
 ├── T10: LUTEngine parity tests GPU vs CPU (depends: T8, T9) [deep]
 ├── T11: Image pipeline: picker + resize + export (depends: T1, T6) [unspecified-high]
-├── T12: Gemini API spike — prove style analysis (depends: T1) [deep]
 └── T13: AdMob setup + banner wrapper (depends: T1, T7) [quick]
 
 Wave 3 (Editor UI — 6 parallel tasks, after Wave 2):
@@ -169,20 +173,20 @@ Wave 3 (Editor UI — 6 parallel tasks, after Wave 2):
 ├── T18: Crop tool + aspect ratios (depends: T11, T14) [visual-engineering]
 └── T19: Undo/redo (EditState implementation) (depends: T6, T14) [deep]
 
-Wave 4 (AI + Monetization — 5 parallel tasks, after Wave 3):
-├── T20: AI style transfer service (depends: T12, T3, T5) [deep]
-├── T21: AI style transfer UI (depends: T20, T14) [visual-engineering]
-├── T22: RevenueCat subscription setup (depends: T1) [unspecified-high]
-├── T23: Paywall/subscription UI (depends: T22, T7) [visual-engineering]
-└── T24: Free/PRO gating + ad integration (depends: T13, T22, T23) [unspecified-high]
+Wave 4 (Color Copy + Ads — 3 parallel tasks, after Wave 3):
+├── T20: Quick Color Copy service — Reinhard transfer + LUT generation (depends: T3, T5) [deep]
+├── T21: Quick Color Copy UI — reference picker + preview + save (depends: T20, T14) [visual-engineering]
+└── T22: AdMob wiring for all users (depends: T13) [quick]
 
-Wave 5 (Content + Polish — 7 parallel tasks, after Wave 4):
-├── T25: LUT catalog bundle (50-100 LUTs + categories) [unspecified-high]
-├── T26: Settings screen (language, about, restore, subscription) [visual-engineering]
+Wave 5 (Content + Polish — 9 parallel tasks, after Wave 4):
+├── T25: LUT catalog bundle (200+ LUTs + categories) [unspecified-high]
+├── T26: Settings screen (language, about, version) [visual-engineering]
 ├── T27: Localization vi + en [quick]
 ├── T28: Import hardening (size checks, URI sanitization) [unspecified-high]
 ├── T29: Rescue UX for all 6 failure modes [visual-engineering]
 ├── T30: Onboarding + empty states [visual-engineering]
+├── T37: Watermark frame (EXIF + camera logos) (depends: T11, T14) [visual-engineering]
+├── T38: Border radius + white border tools (depends: T14, T8) [visual-engineering]
 └── T31: E2E tests (Detox — core flow) [deep]
 
 Wave 6 (Release Hardening — 5 parallel tasks, after Wave 5):
@@ -204,32 +208,31 @@ Wave FINAL (4 parallel reviews, then user okay):
 
 | Task | Depends On | Blocks | Wave |
 |------|-----------|--------|------|
-| T1 | — | T8-T13, T22 | 1 |
+| T1 | — | T8-T13 | 1 |
 | T2 | — | All TDD tasks | 1 |
 | T3 | — | T9, T20 | 1 |
 | T4 | — | T9 | 1 |
 | T5 | — | T8, T9, T20 | 1 |
 | T6 | — | T8, T9, T11, T14, T19 | 1 |
-| T7 | — | T13, T14, T23 | 1 |
-| T8 | T5, T6 | T10, T15, T16 | 2 |
+| T7 | — | T13, T14 | 1 |
+| T8 | T5, T6 | T10, T15, T16, T38 | 2 |
 | T9 | T3, T4, T5, T6 | T10 | 2 |
 | T10 | T8, T9 | T14 | 2 |
-| T11 | T1, T6 | T14, T18 | 2 |
-| T12 | T1 | T20 | 2 |
-| T13 | T1, T7 | T24 | 2 |
-| T14 | T7, T10, T11 | T15-T19, T21 | 3 |
+| T11 | T1, T6 | T14, T18, T37 | 2 |
+| T13 | T1, T7 | T22 | 2 |
+| T14 | T7, T10, T11 | T15-T19, T21, T37, T38 | 3 |
 | T15 | T8, T14 | T25 | 3 |
 | T16 | T8, T14 | — | 3 |
 | T17 | T14 | — | 3 |
 | T18 | T11, T14 | — | 3 |
 | T19 | T6, T14 | — | 3 |
-| T20 | T12, T3, T5 | T21 | 4 |
-| T21 | T20, T14 | T24 | 4 |
-| T22 | T1 | T23, T24 | 4 |
-| T23 | T22, T7 | T24 | 4 |
-| T24 | T13, T22, T23 | — | 4 |
+| T20 | T3, T5 | T21 | 4 |
+| T21 | T20, T14 | — | 4 |
+| T22 | T13 | — | 4 |
 | T25 | T15 | — | 5 |
-| T26-T31 | Wave 4 done | — | 5 |
+| T26-T31, T37-T38 | Wave 4 done | — | 5 |
+| T37 | T11, T14 | — | 5 |
+| T38 | T14, T8 | — | 5 |
 | T32-T36 | Wave 5 done | — | 6 |
 | F1-F4 | ALL done | User okay | FINAL |
 
@@ -238,10 +241,10 @@ Wave FINAL (4 parallel reviews, then user okay):
 | Wave | Tasks | Categories |
 |------|-------|-----------|
 | 1 | 7 | T1,T2→`quick`, T3-T5→`deep`, T6→`quick`, T7→`visual-engineering` |
-| 2 | 6 | T8→`ultrabrain`, T9-T10→`deep`, T11→`unspecified-high`, T12→`deep`, T13→`quick` |
+| 2 | 5 | T8→`ultrabrain`, T9-T10→`deep`, T11→`unspecified-high`, T13→`quick` |
 | 3 | 6 | T14-T18→`visual-engineering`, T19→`deep` |
-| 4 | 5 | T20→`deep`, T21,T23→`visual-engineering`, T22,T24→`unspecified-high` |
-| 5 | 7 | T25,T28→`unspecified-high`, T26,T29,T30→`visual-engineering`, T27→`quick`, T31→`deep` |
+| 4 | 3 | T20→`deep`, T21→`visual-engineering`, T22→`quick` |
+| 5 | 9 | T25,T28→`unspecified-high`, T26,T29,T30,T37,T38→`visual-engineering`, T27→`quick`, T31→`deep` |
 | 6 | 5 | T32→`deep`, T33→`quick`, T34→`visual-engineering`, T35→`writing`, T36→`unspecified-high` |
 | FINAL | 4 | F1→`oracle`, F2,F3→`unspecified-high`, F4→`deep` |
 
@@ -273,7 +276,7 @@ Wave FINAL (4 parallel reviews, then user okay):
 
   **Recommended Agent Profile**:
   - **Category**: `quick`
-  - **Skills**: [`react-native-dev`]
+  - **Skills**: [`expo-dev-client`, `react-native-dev`]
 
   **Parallelization**:
   - **Can Run In Parallel**: YES
@@ -410,7 +413,6 @@ Wave FINAL (4 parallel reviews, then user okay):
 
   **Recommended Agent Profile**:
   - **Category**: `deep`
-  - **Skills**: [`dart-flutter-patterns`] — No, use no skills. Pure TypeScript.
   - **Category**: `deep`
   - **Skills**: []
 
@@ -609,9 +611,9 @@ Wave FINAL (4 parallel reviews, then user okay):
     - `LUTEngine` interface: `applyLUT(image, lutStrip, intensity): Promise<ImageResult>` — implemented by GPU (T8) and CPU (T9)
     - `LUTMetadata`: id, name, category, thumbnailUri, sourceType (bundled/imported)
     - `AdjustmentParams`: { brightness, contrast, saturation, temperature, sharpen } all number (0.0-1.0 normalized)
-    - `AIStyleResult`: structured Gemini API response type (dominantColors, warmth, contrast, saturation, etc.)
-    - `SubscriptionTier`: 'free' | 'monthly' | 'yearly' | 'lifetime'
-    - `EntitlementStatus`: { isPro: boolean, tier: SubscriptionTier, expiresAt?: Date }
+    - `ColorCopyProfile`: reference/target color statistics and generated LUT metadata for Quick Color Copy
+    - `FrameStyle`: border radius, white border width, and watermark enablement settings
+    - `WatermarkMetadata`: formatted EXIF display values and optional camera brand logo key
     - `ExportOptions`: { quality: number, format: 'jpeg', maxDimension?: number }
     - `AppError` union type for all 6 failure modes: UnsupportedLUTSize | FileTooLarge | InvalidHaldFormat | ShaderCompileError | OOM | ExportFailure
   - Write type tests (compile-time checks): ensure types are assignable correctly, generics work
@@ -666,7 +668,7 @@ Wave FINAL (4 parallel reviews, then user okay):
 
   **Commit**: YES
   - Message: `feat(types): add shared type definitions and contracts`
-  - Files: `src/types/edit-state.ts, src/types/lut-engine.ts, src/types/ai-style.ts, src/types/subscription.ts, src/types/errors.ts, src/types/index.ts`
+  - Files: `src/types/edit-state.ts, src/types/lut-engine.ts, src/types/color-copy.ts, src/types/frame-style.ts, src/types/errors.ts, src/types/index.ts`
   - Pre-commit: `npx tsc --noEmit`
 
 - [ ] 7. Theme System (Dark-First Tokens + Base Components)
@@ -694,12 +696,12 @@ Wave FINAL (4 parallel reviews, then user okay):
 
   **Recommended Agent Profile**:
   - **Category**: `visual-engineering`
-  - **Skills**: [`react-native-dev`]
+  - **Skills**: [`building-native-ui`, `react-native-dev`]
 
   **Parallelization**:
   - **Can Run In Parallel**: YES
   - **Parallel Group**: Wave 1 (with T1-T6)
-  - **Blocks**: T13, T14, T23
+  - **Blocks**: T13, T14
   - **Blocked By**: None
 
   **References**:
@@ -974,7 +976,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Do NOT output PNG/HEIC in this task (JPEG only)
   **Recommended Agent Profile**:
   - **Category**: `unspecified-high`
-  - **Skills**: [`react-native-dev`]
+  - **Skills**: [`expo-dev-client`, `react-native-dev`]
   - **Why**: This combines Expo native-module integration, image handling, and platform recovery edge cases.
   **Parallelization**:
   - **Can Run In Parallel**: YES
@@ -1018,71 +1020,6 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Files: `src/image/picker.ts, src/image/preview-resize.ts, src/image/export-jpeg.ts, src/image/__tests__/image-pipeline.test.ts`
   - Pre-commit: `npx jest --testPathPattern image-pipeline --verbose`
 
-- [ ] 12. Gemini API Spike (GO/NO-GO)
-  **What to do**:
-  - RED: Write tests first for structured response parsing and LUT-param conversion
-    - Valid Gemini structured JSON maps into `AIStyleResult`
-    - Missing or malformed fields are rejected cleanly
-    - Oversized inputs route to the right upload strategy
-    - API failure and network failure are surfaced as explicit spike verdict evidence
-  - GREEN:
-    - Build a spike-only service that sends a reference photo to Gemini and requests structured JSON output describing color/style characteristics (`dominantColors`, `warmth`, `contrast`, `saturation`, etc.)
-    - Define a JSON Schema for the expected response and validate output against it
-    - Convert structured style attributes into provisional LUT parameter targets (not final UX yet)
-    - Evaluate secure key strategy: restricted API key and platform/app-signing restrictions; document that embedding an unrestricted key in the binary is forbidden
-    - Document request size handling and fallback to Files API/upload flow when input assets exceed inline limits
-    - Produce a formal GO/NO-GO decision based on response stability, latency, structure quality, and whether the returned attributes are sufficient to generate a usable LUT in T20
-  - REFACTOR:
-    - Keep this spike isolated in `src/ai/spike/` so production service code in T20 can be built on proven pieces only
-    - Write a short decision doc/evidence artifact summarizing findings and remaining risks
-  **Must NOT do**:
-  - Do NOT embed an unrestricted Gemini API key in the mobile app binary
-  - Do NOT build the final user-facing AI UI in this task
-  - Do NOT treat free-form text output as acceptable — structured JSON is required
-  **Recommended Agent Profile**:
-  - **Category**: `deep`
-  - **Skills**: [`documentation-lookup`]
-  - **Why**: This is a feasibility gate with external API contract design, validation, and security implications.
-  **Parallelization**:
-  - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 2 (with T8, T9, T11, T13)
-  - **Blocks**: T20
-  - **Blocked By**: T1
-  **References**:
-  - `.sisyphus/drafts/handoff-lut-app-v2.md:36,72-84` — structured output, Files API, and API key constraints
-  - `.sisyphus/plans/lut-app-v2.md:50,59-60` — Gemini structured output feasibility and API-key strategy gap
-  - `PLAN.md:377` — Revenue/key storage style review analog; avoid insecure client-state shortcuts
-  - Current Google Gemini docs for structured output / JSON Schema mode
-  **Acceptance Criteria**:
-  - [ ] Tests written FIRST for response validation and parameter conversion
-  - [ ] `npx jest --testPathPattern gemini-spike --verbose` passes
-  - [ ] JSON Schema for Gemini structured output exists and is enforced
-  - [ ] Spike produces a written GO/NO-GO verdict with evidence
-  - [ ] Restricted-key/app-signing strategy is documented; no unrestricted embedded key approach is proposed
-  **QA Scenarios**:
-  ```
-  Scenario: Gemini returns valid structured style analysis
-    Tool: Bash
-    Steps:
-      1. Run spike test or script against configured Gemini endpoint with a known reference photo
-      2. Assert response validates against JSON Schema
-      3. Assert warmth/contrast/saturation fields are converted into provisional LUT params
-    Expected Result: Structured output is stable enough to drive T20
-    Evidence: .sisyphus/evidence/task-12-gemini-structured-output.txt
-
-  Scenario: Gemini malformed output is rejected
-    Tool: Bash
-    Steps:
-      1. Run parser test with malformed or partial JSON response
-      2. Assert schema validation fails with descriptive error
-      3. Assert no LUT params are generated from invalid data
-    Expected Result: Invalid model output cannot silently corrupt downstream rendering
-    Evidence: .sisyphus/evidence/task-12-gemini-malformed.txt
-  ```
-  **Commit**: YES
-  - Message: `spike(ai): validate gemini structured style analysis`
-  - Files: `src/ai/spike/gemini-spike.ts, src/ai/spike/schema.ts, src/ai/spike/__tests__/gemini-spike.test.ts, .sisyphus/evidence/task-12-go-no-go.md`
-  - Pre-commit: `npx jest --testPathPattern gemini-spike --verbose`
 
 - [ ] 13. AdMob Setup + Banner Wrapper
   **What to do**:
@@ -1094,11 +1031,11 @@ Wave FINAL (4 parallel reviews, then user okay):
     - Install and configure `react-native-google-mobile-ads`
     - Build a reusable banner wrapper component in `src/ads/` that wraps `BannerAd` in a parent `View` because the ad component does not forward style props correctly
     - Add environment-aware test ad unit IDs for development and sandbox verification
-    - Expose a small ad-slot component for bottom-of-screen placement in free-tier screens
+    - Expose a small ad-slot component for bottom-of-screen placement in approved screens
   - REFACTOR:
-    - Keep ad configuration and UI wrapper separate so T24 can compose gating logic later
+    - Keep ad configuration and UI wrapper separate so T22 can compose final placement logic later
   **Must NOT do**:
-  - Do NOT wire final free-vs-PRO entitlement logic here (that belongs in T24)
+  - Do NOT wire final screen-placement logic here (that belongs in T22)
   - Do NOT apply style props directly to `BannerAd`
   - Do NOT use production ad IDs in local/dev testing
   **Recommended Agent Profile**:
@@ -1107,8 +1044,8 @@ Wave FINAL (4 parallel reviews, then user okay):
   - **Why**: This is a narrow native-module setup task with a known wrapper caveat.
   **Parallelization**:
   - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 2 (with T8-T12)
-  - **Blocks**: T24
+  - **Parallel Group**: Wave 2 (with T8-T11)
+  - **Blocks**: T22
   - **Blocked By**: T1, T7
   **References**:
   - `.sisyphus/drafts/handoff-lut-app-v2.md:37,76` — AdMob package and wrapper caveat
@@ -1167,7 +1104,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Do NOT add feature logic from T15-T19 yet beyond placeholders
   **Recommended Agent Profile**:
   - **Category**: `visual-engineering`
-  - **Skills**: [`react-native-dev`]
+  - **Skills**: [`building-native-ui`, `react-native-dev`]
   - **Why**: This locks in user flow and information hierarchy for the editor experience.
   **Parallelization**:
   - **Can Run In Parallel**: NO
@@ -1499,311 +1436,239 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Files: `src/state/edit-history/history.ts, src/state/edit-history/__tests__/edit-history.test.ts, src/state/edit-history/memory-budget.ts`
   - Pre-commit: `npx jest --testPathPattern edit-history --verbose`
 
-### Wave 4: AI + Monetization
+### Wave 4: Color Copy + Ads
 
-- [ ] 20. AI Style Transfer Service
+- [ ] 20. Quick Color Copy Service — Reinhard Transfer + LUT Generation
   **What to do**:
-  - RED: Write tests first for structured-result→LUT generation pipeline
-    - Valid `AIStyleResult` maps into generated LUT values
-    - Generated LUT encodes into 2D strip via T5 encoder
-    - API/network failures surface actionable errors
-    - Service rejects invalid/missing structured output
+  - RED: Write tests first for the offline reference-photo → LUT generation pipeline
+    - Valid reference/target fixtures produce stable Reinhard transfer output
+    - Generated color transform encodes into a renderer-compatible 2D LUT strip via T5
+    - Strength/intensity parameter blends between original target statistics and transferred result
+    - Invalid or unsupported inputs surface explicit local errors (no network assumptions)
   - GREEN:
-    - Build production AI style transfer service in `src/ai/service/`
-    - Call the proven structured-output path from T12
-    - Convert style profile attributes into generated LUT values/colors
-    - Encode the generated LUT into the same 2D strip format used by the shader/CPU engines
-    - Return a preview-ready result that can be fed directly into the editor renderer
-    - Add internet/offline and rate/error handling
+    - Build `src/color-copy/quick-color-copy-service.ts` as a pure on-device pipeline
+    - Implement Reinhard color transfer in lαβ color space:
+      - convert reference and target previews to lαβ
+      - compute mean and standard deviation for each channel
+      - transform target pixels with `(target - mean_target) * (std_ref / std_target) + mean_ref`
+      - convert back to RGB
+    - Sample the transformed mapping into a generated 3D LUT and encode it with the existing T5 LUT encoder
+    - Return a preview-ready result containing generated LUT strip metadata plus optional diagnostic stats for UI display
+    - Keep processing fully offline and fast enough for interactive preview on editor-sized images
   - REFACTOR:
-    - Separate network client, style-to-LUT transform, and strip-encoding orchestration
+    - Separate color-space conversion, statistics, Reinhard transfer math, and LUT-strip generation into focused modules under `src/color-copy/`
+    - Reuse existing LUT strip contracts from T5/T8/T9 rather than inventing a parallel renderer path
   **Must NOT do**:
-  - Do NOT bypass structured validation from T12
-  - Do NOT return free-form text to the UI
-  - Do NOT couple service code to a single UI screen
+  - Do NOT call any cloud API or network service
+  - Do NOT bypass the shared LUT strip pipeline used by the renderer
+  - Do NOT bake UI state into the service layer
   **Recommended Agent Profile**:
   - **Category**: `deep`
-  - **Skills**: [`documentation-lookup`]
-  - **Why**: This is the core AI monetization backend in app code and needs correctness plus resilience.
+  - **Skills**: []
+  - **Why**: This is math-heavy image-processing work that must integrate cleanly with the existing LUT pipeline.
   **Parallelization**:
   - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 4 (with T22, T23)
+  - **Parallel Group**: Wave 4 (with T22)
   - **Blocks**: T21
-  - **Blocked By**: T12, T3, T5
+  - **Blocked By**: T3, T5
   **References**:
-  - `.sisyphus/drafts/handoff-lut-app-v2.md:48`
-  - `.sisyphus/plans/lut-app-v2.md:80,91` — AI style transfer as core deliverable/DoD
-  - `PLAN.md:212-214` — original deferred AI/color transfer context
+  - `.sisyphus/drafts/pivot-free-app-color-copy.md:15-29` — Reinhard algorithm and offline constraints
+  - `.sisyphus/drafts/pivot-free-app-color-copy.md:38-46` — product expectations for Quick Color Copy
+  - `.sisyphus/plans/lut-app-v2.md:74-85` — deliverables and LUT pipeline expectations
+  - Reinhard et al. (2001) — "Color Transfer between Images"
   **Acceptance Criteria**:
-  - [ ] `npx jest --testPathPattern ai-style-service --verbose` passes
-  - [ ] Structured Gemini result is converted into generated LUT values
-  - [ ] Generated LUT is encoded as a 2D strip and accepted by render pipeline
-  - [ ] Error states are explicit for API/network/schema failures
+  - [ ] `npx jest --testPathPattern quick-color-copy-service --verbose` passes
+  - [ ] Reference photo statistics are converted into a generated LUT strip usable by the render pipeline
+  - [ ] Strength/intensity control is supported in the service contract
+  - [ ] Service works fully offline with explicit local error handling
   **QA Scenarios**:
   ```
-  Scenario: Structured AI result generates renderable LUT strip
+  Scenario: Reference photo generates renderer-compatible LUT strip
     Tool: Bash
     Steps:
-      1. Run `npx jest --testPathPattern ai-style-service --verbose`
-      2. Assert style-to-LUT conversion test passes
-      3. Assert encoded strip dimensions and metadata are valid
-    Expected Result: AI service returns renderer-compatible LUT output
-    Evidence: .sisyphus/evidence/task-20-ai-style-service.txt
+      1. Run `npx jest --testPathPattern quick-color-copy-service --verbose`
+      2. Assert Reinhard transfer fixture tests pass
+      3. Assert generated LUT strip dimensions and metadata are valid for the renderer
+    Expected Result: Quick Color Copy returns a usable offline LUT result
+    Evidence: .sisyphus/evidence/task-20-quick-color-copy-service.txt
 
-  Scenario: AI request failure returns actionable error
+  Scenario: Strength control blends transfer safely
     Tool: Bash
     Steps:
-      1. Run test with mocked network/API failure
-      2. Assert service returns explicit failure type
-      3. Assert retry/recovery metadata is attached for UI layer
-    Expected Result: AI failures can be handled without corrupting editor state
-    Evidence: .sisyphus/evidence/task-20-ai-service-failure.txt
+      1. Run test with the same reference/target pair at 0.0, 0.5, and 1.0 strength
+      2. Assert 0.0 preserves the target baseline and 1.0 applies the full transfer profile
+      3. Assert intermediate output remains bounded and deterministic
+    Expected Result: Strength control is predictable and stable
+    Evidence: .sisyphus/evidence/task-20-quick-color-copy-strength.txt
   ```
   **Commit**: YES
-  - Message: `feat(ai): add style transfer service`
-  - Files: `src/ai/service/style-transfer.ts, src/ai/service/style-to-lut.ts, src/ai/service/__tests__/ai-style-service.test.ts`
-  - Pre-commit: `npx jest --testPathPattern ai-style-service --verbose`
+  - Message: `feat(color-copy): add reinhard transfer service`
+  - Files: `src/color-copy/quick-color-copy-service.ts, src/color-copy/reinhard-transfer.ts, src/color-copy/lab-color.ts, src/color-copy/__tests__/quick-color-copy-service.test.ts`
+  - Pre-commit: `npx jest --testPathPattern quick-color-copy-service --verbose`
 
-- [ ] 21. AI Style Transfer UI
+- [ ] 21. Quick Color Copy UI — Reference Picker + Preview + Save
   **What to do**:
-  - RED: Write tests first for reference-photo pick, loading state, preview state, and apply/discard actions
+  - RED: Write tests first for reference-photo picking, loading/progress state, preview/apply flow, and save action behavior
   - GREEN:
-    - Add in-editor or adjacent flow for selecting a reference photo for AI style transfer
-    - Show loading/progress state while AI style generation runs
-    - Present generated LUT preview over the current image
-    - Allow the user to apply the generated style or discard it cleanly
+    - Add Quick Color Copy entry point inside the editor flow (not a detached monetization screen)
+    - Let the user pick a reference photo from gallery using the existing image pipeline patterns
+    - Show generated preview state over the current edit with clear loading, error, cancel, and apply/save actions
+    - Add a strength slider tied to the T20 service contract for interactive preview adjustment
+    - Allow the generated LUT to be saved into a "My Filters" / custom filters collection for later reuse
   - REFACTOR:
-    - Keep AI UI state local and transient until the user explicitly applies the generated LUT
+    - Keep transient preview state local until the user explicitly applies or saves the generated filter
+    - Separate reference-picker UI, preview panel, and save dialog/metadata handling into focused components
   **Must NOT do**:
-  - Do NOT auto-commit generated AI edits without user confirmation
-  - Do NOT hide loading/error states
-  - Do NOT expose this UI to free-tier users before T24 gating
+  - Do NOT auto-commit generated edits without user confirmation
+  - Do NOT hide loading/error states while processing
+  - Do NOT route users through any paywall or subscription surface
   **Recommended Agent Profile**:
   - **Category**: `visual-engineering`
   - **Skills**: [`react-native-dev`]
-  - **Why**: This is a high-visibility product feature with complex async UI states.
+  - **Why**: This is a highly visible editor workflow with async preview and state-handling complexity.
   **Parallelization**:
   - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 4 (with T22, T23)
-  - **Blocks**: T24
+  - **Parallel Group**: Wave 4 (with T22)
+  - **Blocks**: None
   - **Blocked By**: T20, T14
   **References**:
-  - `.sisyphus/drafts/handoff-lut-app-v2.md:49`
-  - `.sisyphus/plans/lut-app-v2.md:11,80` — AI style transfer is a launch deliverable
-  - `PLAN.md:349-350` — loading/error states were previously underspecified
+  - `.sisyphus/drafts/pivot-free-app-color-copy.md:39-46` — Quick Color Copy UX expectations
+  - `.sisyphus/plans/lut-app-v2.md:5-13` — TL;DR feature summary
+  - `.sisyphus/plans/lut-app-v2.md:74-85` — deliverables list
   **Acceptance Criteria**:
-  - [ ] `npx jest --testPathPattern ai-style-ui --verbose` passes
-  - [ ] Reference photo can be selected for AI style generation
-  - [ ] Loading, success preview, discard, and apply states all render
-  - [ ] Apply action commits generated LUT into editor state
+  - [ ] `npx jest --testPathPattern quick-color-copy-ui --verbose` passes
+  - [ ] User can select a reference photo and preview generated color copy on the current image
+  - [ ] Loading, error, cancel, apply, and save states all render correctly
+  - [ ] Generated LUT can be saved for later reuse
   **QA Scenarios**:
   ```
-  Scenario: User previews AI-generated style and applies it
+  Scenario: User previews Quick Color Copy and applies it
     Tool: Bash
     Steps:
-      1. Run `npx jest --testPathPattern ai-style-ui --verbose`
-      2. Assert loading state test passes
+      1. Run `npx jest --testPathPattern quick-color-copy-ui --verbose`
+      2. Assert reference photo pick and loading tests pass
       3. Assert apply/discard actions update UI and editor state correctly
-    Expected Result: AI style flow is explicit, previewable, and user-controlled
-    Evidence: .sisyphus/evidence/task-21-ai-ui.txt
+    Expected Result: Quick Color Copy is previewable and user-controlled
+    Evidence: .sisyphus/evidence/task-21-quick-color-copy-ui.txt
 
-  Scenario: AI generation error is visible and recoverable
+  Scenario: User saves generated filter for reuse
     Tool: Bash
     Steps:
-      1. Run UI test with mocked AI service failure
-      2. Assert error state is shown
-      3. Assert retry or cancel path remains available
-    Expected Result: Failed AI requests do not strand the user
-    Evidence: .sisyphus/evidence/task-21-ai-ui-error.txt
+      1. Run UI test with mocked save action for generated LUT
+      2. Assert save metadata/action path succeeds
+      3. Assert saved filter appears in the custom filter collection state
+    Expected Result: Generated filters can be reused later without regeneration
+    Evidence: .sisyphus/evidence/task-21-quick-color-copy-save.txt
   ```
   **Commit**: YES
-  - Message: `feat(ai): add style transfer ui`
-  - Files: `src/screens/editor/ai/AIStylePanel.tsx, src/screens/editor/ai/__tests__/ai-style-ui.test.tsx`
-  - Pre-commit: `npx jest --testPathPattern ai-style-ui --verbose`
+  - Message: `feat(color-copy): add quick color copy ui`
+  - Files: `src/screens/editor/color-copy/QuickColorCopyPanel.tsx, src/screens/editor/color-copy/useQuickColorCopy.ts, src/screens/editor/color-copy/__tests__/quick-color-copy-ui.test.tsx`
+  - Pre-commit: `npx jest --testPathPattern quick-color-copy-ui --verbose`
 
-- [ ] 22. RevenueCat Subscription Setup
+- [ ] 22. AdMob Wiring for All Users
   **What to do**:
-  - RED: Write tests first for entitlement mapping, sandbox product loading, and restore behavior scaffolding
+  - RED: Write tests first for unconditional banner visibility on approved surfaces, layout safety, and environment-specific ad unit configuration
   - GREEN:
-    - Install/configure `react-native-purchases`
-    - Define three products: monthly, yearly, lifetime
-    - Implement entitlement fetch and signed-cache-backed status handling through RevenueCat SDK
-    - Build restore-purchases plumbing and sandbox verification path
-    - Expose subscription state through a dedicated service/store
+    - Build final ad wiring on top of T13’s banner wrapper/config
+    - Show AdMob banner ads for all users on approved surfaces without any entitlement or subscription checks
+    - Keep ad placement consistent with editor/layout constraints so banners do not break core editing controls
+    - Ensure development/test IDs remain in non-production builds and production config is isolated cleanly
   - REFACTOR:
-    - Isolate RevenueCat client code from UI components
-    - Keep entitlement mapping strongly typed with T6 subscription types
+    - Centralize approved ad-surface placement rules in `src/ads/placement.ts`
+    - Keep ad configuration separate from screen-level composition logic
   **Must NOT do**:
-  - Do NOT store purchase state in a local boolean/AsyncStorage-only shortcut
-  - Do NOT hardcode sandbox assumptions into production logic
-  - Do NOT build paywall UI in this task
+  - Do NOT add paywall, PRO tier, or ad-removal logic
+  - Do NOT apply style props directly to `BannerAd`
+  - Do NOT use production ad IDs during local/dev verification
   **Recommended Agent Profile**:
-  - **Category**: `unspecified-high`
+  - **Category**: `quick`
   - **Skills**: [`react-native-dev`]
-  - **Why**: This is a revenue-critical native integration with entitlement/security requirements.
+  - **Why**: This is a bounded monetization plumbing task built on the existing banner wrapper.
   **Parallelization**:
   - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 4 (with T20, T23)
-  - **Blocks**: T23, T24
-  - **Blocked By**: T1
-  **References**:
-  - `.sisyphus/drafts/handoff-lut-app-v2.md:50`
-  - `.sisyphus/plans/lut-app-v2.md:52,62,112` — RevenueCat abstraction and entitlement constraints
-  - `PLAN.md:40,49,99-105,130,165` — original RevenueCat architecture and store flow
-  - `PLAN.md:372,377,385,414` — signed-cache entitlement and key-storage concerns
-  **Acceptance Criteria**:
-  - [ ] `npx jest --testPathPattern subscription-service --verbose` passes
-  - [ ] Monthly/yearly/lifetime products are defined in typed config
-  - [ ] Entitlement status is sourced from RevenueCat SDK-backed state
-  - [ ] Restore flow plumbing exists and is test-covered
-  **QA Scenarios**:
-  ```
-  Scenario: RevenueCat entitlements map into app subscription state
-    Tool: Bash
-    Steps:
-      1. Run `npx jest --testPathPattern subscription-service --verbose`
-      2. Assert entitlement mapping tests pass
-      3. Assert free/monthly/yearly/lifetime states resolve correctly
-    Expected Result: App derives subscription state from RevenueCat-backed entitlements
-    Evidence: .sisyphus/evidence/task-22-revenuecat-entitlements.txt
-
-  Scenario: Restore purchases path is available
-    Tool: Bash
-    Steps:
-      1. Run test with mocked restore response from RevenueCat
-      2. Assert app state updates to restored entitlement
-      3. Assert error path is handled when restore fails
-    Expected Result: Restore behavior is wired before UI polish
-    Evidence: .sisyphus/evidence/task-22-restore-purchases.txt
-  ```
-  **Commit**: YES
-  - Message: `feat(iap): add revenuecat subscription setup`
-  - Files: `src/subscription/revenuecat-client.ts, src/subscription/subscription-service.ts, src/subscription/__tests__/subscription-service.test.ts`
-  - Pre-commit: `npx jest --testPathPattern subscription-service --verbose`
-
-- [ ] 23. Paywall / Subscription UI
-  **What to do**:
-  - RED: Write tests first for tier rendering, CTA actions, and restore button visibility
-  - GREEN:
-    - Build paywall screen/modal with feature comparison, pricing tiers, and CTA buttons
-    - Include monthly/yearly/lifetime display, restore purchases action, and clear PRO value framing (AI style + no ads)
-    - Use dark-first visual system from T7
-  - REFACTOR:
-    - Separate pricing-card component(s), paywall copy/content config, and screen container
-  **Must NOT do**:
-  - Do NOT hardcode subscription state locally in the UI
-  - Do NOT omit restore purchases
-  - Do NOT leave pricing labels ambiguous
-  **Recommended Agent Profile**:
-  - **Category**: `visual-engineering`
-  - **Skills**: [`react-native-dev`]
-  - **Why**: This is the main conversion screen and needs strong visual clarity plus accurate purchase wiring.
-  **Parallelization**:
-  - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 4 (with T20, T22)
-  - **Blocks**: T24
-  - **Blocked By**: T22, T7
-  **References**:
-  - `.sisyphus/drafts/handoff-lut-app-v2.md:51`
-  - `PLAN.md:348` — paywall design is a critical design gap
-  - `PLAN.md:100,166` — restore purchases requirement
-  **Acceptance Criteria**:
-  - [ ] `npx jest --testPathPattern paywall --verbose` passes
-  - [ ] All three tiers render with pricing placeholders/config
-  - [ ] Restore purchases button is visible and wired
-  - [ ] CTA buttons trigger subscription service hooks/callbacks
-  **QA Scenarios**:
-  ```
-  Scenario: Paywall renders all plans and restore action
-    Tool: Bash
-    Steps:
-      1. Run `npx jest --testPathPattern paywall --verbose`
-      2. Assert monthly/yearly/lifetime cards render
-      3. Assert restore purchases button test passes
-    Expected Result: Conversion UI is complete and actionable
-    Evidence: .sisyphus/evidence/task-23-paywall-ui.txt
-
-  Scenario: Purchase CTA handles loading/error state
-    Tool: Bash
-    Steps:
-      1. Run UI test with mocked purchase request pending then failing
-      2. Assert loading state appears
-      3. Assert error message/retry path appears on failure
-    Expected Result: Purchase flow failures are visible and recoverable
-    Evidence: .sisyphus/evidence/task-23-paywall-error.txt
-  ```
-  **Commit**: YES
-  - Message: `feat(iap): add paywall subscription ui`
-  - Files: `src/screens/paywall/PaywallScreen.tsx, src/screens/paywall/PricingCard.tsx, src/screens/paywall/__tests__/paywall.test.tsx`
-  - Pre-commit: `npx jest --testPathPattern paywall --verbose`
-
-- [ ] 24. Free/PRO Gating + Ads
-  **What to do**:
-  - RED: Write tests first for feature gating and ad visibility
-    - AI feature is blocked for free users
-    - PRO users do not see bottom banner ads
-    - Free users do see ads in approved surfaces
-  - GREEN:
-    - Wire entitlement checks from T22 into the editor/AI surfaces
-    - Gate AI style transfer entry points for free users and route them to the paywall
-    - Show AdMob banner for free users only
-    - Hide ads for PRO users across gated surfaces
-  - REFACTOR:
-    - Centralize gating rules in `src/subscription/gating.ts`
-  **Must NOT do**:
-  - Do NOT gate free LUTs or core editing tools
-  - Do NOT use a local boolean shortcut for PRO state
-  - Do NOT scatter gating logic across many unrelated components
-  **Recommended Agent Profile**:
-  - **Category**: `unspecified-high`
-  - **Skills**: [`react-native-dev`]
-  - **Why**: This combines revenue-critical entitlement logic with ad monetization behavior.
-  **Parallelization**:
-  - **Can Run In Parallel**: NO
-  - **Parallel Group**: Wave 4
+  - **Parallel Group**: Wave 4 (with T20, T21)
   - **Blocks**: Wave 5
-  - **Blocked By**: T13, T22, T23
+  - **Blocked By**: T13
   **References**:
-  - `.sisyphus/drafts/handoff-lut-app-v2.md:52,89-92`
-  - `.sisyphus/plans/lut-app-v2.md:12-13,27-29,103,113` — monetization policy and must-not-have guardrails
-  - `PLAN.md:163-166` — legacy free/paid split to explicitly avoid reintroducing
+  - `.sisyphus/drafts/pivot-free-app-color-copy.md:7-10,50-54` — ads-only monetization pivot and AdMob changes
+  - `.sisyphus/plans/lut-app-v2.md:12-13,99-116` — ads-only guardrails and must-haves
+  - `.sisyphus/plans/lut-app-v2.md:1080-1138` — T13 ad wrapper/setup details
   **Acceptance Criteria**:
-  - [ ] `npx jest --testPathPattern gating --verbose` passes
-  - [ ] Free users are routed to paywall for AI feature access
-  - [ ] PRO users do not see banner ads
-  - [ ] Free users still retain all core LUT/editing functionality
+  - [ ] `npx jest --testPathPattern ads --verbose` passes
+  - [ ] Banner ads render for all users on approved surfaces
+  - [ ] No subscription or gating logic remains in ad wiring
+  - [ ] Layout remains stable with ad slot mounted
   **QA Scenarios**:
   ```
-  Scenario: Free user is gated from AI and shown paywall
+  Scenario: Banner ads render for all users on approved surfaces
     Tool: Bash
     Steps:
-      1. Run `npx jest --testPathPattern gating --verbose`
-      2. Assert free entitlement cannot open AI flow directly
-      3. Assert paywall route/modal is triggered instead
-    Expected Result: AI remains PRO-only without blocking the core editor
-    Evidence: .sisyphus/evidence/task-24-free-gating.txt
+      1. Run `npx jest --testPathPattern ads --verbose`
+      2. Assert approved-surface ad placement tests pass
+      3. Assert no entitlement checks are required for rendering
+    Expected Result: Ads are visible consistently for all users
+    Evidence: .sisyphus/evidence/task-22-admob-all-users.txt
 
-  Scenario: PRO user sees no ads
+  Scenario: Ad slot does not break editor layout
     Tool: Bash
     Steps:
-      1. Run test with PRO entitlement state
-      2. Assert banner slot does not render
-      3. Assert AI entry remains available
-    Expected Result: PRO entitlement removes ads and unlocks AI
-    Evidence: .sisyphus/evidence/task-24-pro-no-ads.txt
+      1. Run layout/render test with banner slot mounted in editor shell
+      2. Assert toolbar and preview regions remain accessible
+      3. Assert test/dev ad unit IDs are used in non-production mode
+    Expected Result: Monetization does not compromise core editor usability
+    Evidence: .sisyphus/evidence/task-22-admob-layout.txt
   ```
   **Commit**: YES
-  - Message: `feat(iap): add pro gating and free tier ads`
-  - Files: `src/subscription/gating.ts, src/subscription/__tests__/gating.test.ts, src/screens/editor/ai/AIEntryGate.tsx`
-  - Pre-commit: `npx jest --testPathPattern gating --verbose`
+  - Message: `feat(ads): wire admob for all users`
+  - Files: `src/ads/placement.ts, src/ads/__tests__/placement.test.ts, src/screens/editor/EditorAdSlot.tsx`
+  - Pre-commit: `npx jest --testPathPattern ads --verbose`
 
 ### Wave 5: Content + Polish
+
+- [ ] 0. [MANUAL — YOU must do this before T25 starts] LUT Asset Acquisition + Conversion
+
+  > ⚠️ **This is NOT an agent task.** You (the human) must complete this manually.
+  > Agent T25 will BLOCK if `assets/luts/` does not contain 200+ HaldCLUT PNG files.
+
+  **What YOU must do**:
+  1. Clone G'MIC Film-Luts (MIT license):
+     ```
+     git clone https://github.com/dtschump/gmic-community --depth=1
+     # LUTs are in: gmic-community/include/gmic_film_cluts.h (embedded) or use gmic CLI to export
+     # Alternative: https://github.com/Gmic-org/gmic-luts (if available)
+     ```
+  2. Clone Pat David HaldCLUT collection (RawTherapee film simulations):
+     ```
+     git clone https://github.com/patdavid/film-luts --depth=1
+     ```
+  3. Clone Popul-AR/gmic-luts:
+     ```
+     git clone https://github.com/Popul-AR/gmic-luts --depth=1
+     ```
+  4. Run the conversion script for each `.cube` source directory:
+     ```
+     python tools/cube_to_hald.py --input <path_to_cube_dir> --output assets/luts/
+     ```
+     *(Run once per source repo. Script already exists at `tools/cube_to_hald.py`.)*
+  5. Rename all output PNG files to **mood/style descriptors** — NO brand names:
+     - ❌ `kodak_portra_400.png` → ✅ `warm_grain_soft.png`
+     - ❌ `fuji_velvia.png` → ✅ `vivid_saturated_cool.png`
+     - See ByteRover rule: all LUT names must avoid Kodak, Fuji, and other trademarks
+  6. Verify count: `ls assets/luts/*.png | wc -l` → must be ≥ 200
+
+  **Must NOT do**:
+  - Do NOT commit `.cube` source files to the repo (only the converted PNGs)
+  - Do NOT use any LUT collection with a non-permissive license
+  - Do NOT keep brand/trademark names in filenames
+
+  **Blocks**: T25 (LUT Catalog Bundle)
+  **Blocked By**: Wave 4 done (so you have time while agents run Wave 4)
 
 - [ ] 25. LUT Catalog Bundle
   **What to do**:
   - RED: Write tests first for metadata loading, category grouping, and thumbnail/catalog lookup
   - GREEN:
-    - Bundle 50-100 LUT assets in `assets/luts/` as pre-converted HaldCLUT PNGs
+    - Bundle 200+ LUT assets in `assets/luts/` as pre-converted HaldCLUT PNGs
     - Create metadata JSON containing id, display name, category, asset path, and thumbnail path
     - Organize LUTs into categories appropriate for browse UI
     - Prefer pre-generated thumbnails/build artifacts to avoid first-launch thumbnail generation freezes
@@ -1830,7 +1695,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - `tools/cube_to_hald.py` — source conversion tool for pre-bundling pipeline
   **Acceptance Criteria**:
   - [ ] Metadata tests pass with `npx jest --testPathPattern lut-catalog --verbose`
-  - [ ] 50-100 LUT entries exist with category metadata
+  - [ ] 200+ LUT entries exist with category metadata
   - [ ] All asset paths resolve
   - [ ] Naming avoids trademarked camera/film brands
   **QA Scenarios**:
@@ -1860,21 +1725,19 @@ Wave FINAL (4 parallel reviews, then user okay):
 
 - [ ] 26. Settings Screen
   **What to do**:
-  - RED: Write tests first for language toggle, restore purchases, manage subscription, and version rendering
+  - RED: Write tests first for language toggle, about section, and version rendering
   - GREEN:
-    - Build settings screen with language toggle, about section, restore purchases, manage subscription, and version info
-    - Wire restore/manage actions to subscription service
+    - Build settings screen with language toggle, about section, and version info
     - Present current app version/build info
   - REFACTOR:
     - Keep settings item config separate from rendering component
   **Must NOT do**:
-  - Do NOT bury restore purchases behind multiple submenus
   - Do NOT hardcode version text
-  - Do NOT duplicate subscription logic in the UI layer
+  - Do NOT add restore purchases or manage subscription actions
   **Recommended Agent Profile**:
   - **Category**: `visual-engineering`
   - **Skills**: [`react-native-dev`]
-  - **Why**: This is user-facing polish with important monetization/account recovery paths.
+  - **Why**: This is user-facing polish focused on app settings, localization, and app metadata.
   **Parallelization**:
   - **Can Run In Parallel**: YES
   - **Parallel Group**: Wave 5 (with T25, T27-T30)
@@ -1883,34 +1746,24 @@ Wave FINAL (4 parallel reviews, then user okay):
   **References**:
   - `.sisyphus/drafts/handoff-lut-app-v2.md:56`
   - `PLAN.md:104` — settings scope
-  - `PLAN.md:166-167` — restore purchases is required
   **Acceptance Criteria**:
   - [ ] `npx jest --testPathPattern settings-screen --verbose` passes
   - [ ] Language toggle renders and updates state
-  - [ ] Restore/manage subscription actions are visible
+  - [ ] About and version information are visible
   - [ ] Version/build text is sourced from config/app metadata
   **QA Scenarios**:
   ```
-  Scenario: Settings screen exposes language and subscription actions
+  Scenario: Settings screen exposes language, about, and version info
     Tool: Bash
     Steps:
       1. Run `npx jest --testPathPattern settings-screen --verbose`
       2. Assert toggle and action row tests pass
       3. Assert version text is rendered
-    Expected Result: Settings screen covers required recovery and info actions
+    Expected Result: Settings screen covers required information and localization controls
     Evidence: .sisyphus/evidence/task-26-settings-screen.txt
-
-  Scenario: Restore purchase action handles failure
-    Tool: Bash
-    Steps:
-      1. Run test with mocked restore failure
-      2. Assert error feedback is shown
-      3. Assert user can retry or back out
-    Expected Result: Restore failures are not silent
-    Evidence: .sisyphus/evidence/task-26-restore-failure.txt
   ```
   **Commit**: YES
-  - Message: `feat(settings): add settings screen and subscription actions`
+  - Message: `feat(settings): add settings screen`
   - Files: `src/screens/settings/SettingsScreen.tsx, src/screens/settings/__tests__/settings-screen.test.tsx`
   - Pre-commit: `npx jest --testPathPattern settings-screen --verbose`
 
@@ -2290,7 +2143,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Do NOT couple Sentry config to development-only flows
   **Recommended Agent Profile**:
   - **Category**: `quick`
-  - **Skills**: [`react-native-dev`]
+  - **Skills**: [`expo-cicd-workflows`, `react-native-dev`]
   - **Why**: This is release-safety infrastructure with a clear, bounded setup surface.
   **Parallelization**:
   - **Can Run In Parallel**: YES
@@ -2345,7 +2198,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Do NOT introduce a bright/light splash that clashes with app identity
   **Recommended Agent Profile**:
   - **Category**: `visual-engineering`
-  - **Skills**: [`react-native-dev`]
+  - **Skills**: [`building-native-ui`, `react-native-dev`]
   - **Why**: This is brand/visual release work with platform asset requirements.
   **Parallelization**:
   - **Can Run In Parallel**: YES
@@ -2499,6 +2352,121 @@ Wave FINAL (4 parallel reviews, then user okay):
   - Files: `src/import/import-lut-from-device.ts, src/import/persist-imported-lut.ts, src/import/__tests__/lut-import.test.ts`
   - Pre-commit: `npx jest --testPathPattern lut-import --verbose`
 
+- [ ] 37. Watermark Frame (EXIF + Camera Logos)
+  **What to do**:
+  - RED: Write tests first for EXIF metadata extraction/mapping, camera-logo selection, and rendered overlay output
+  - GREEN:
+    - Build watermark frame feature that renders export-ready metadata overlays on the image
+    - Read EXIF fields already available through the image pipeline (camera model/brand, focal length, aperture, shutter speed, ISO, timestamp as available)
+    - Map known camera brands to bundled monochrome logo assets and fall back gracefully when a brand is unknown
+    - Add layout presets that keep the watermark frame visually consistent and non-destructive to the edited image
+    - Ensure watermark frame output is included in the exported image path, not just preview UI chrome
+  - REFACTOR:
+    - Separate EXIF-to-display formatting, logo lookup, and frame rendering into focused modules under `src/watermark/`
+    - Keep watermark rendering compatible with both preview and export composition paths
+  **Must NOT do**:
+  - Do NOT fail the export when some EXIF fields are missing
+  - Do NOT hardcode camera brand strings all over UI components
+  - Do NOT render watermark metadata outside the final composed image when the feature is enabled
+  **Recommended Agent Profile**:
+  - **Category**: `visual-engineering`
+  - **Skills**: [`building-native-ui`, `react-native-dev`]
+  - **Why**: This combines metadata formatting, layout polish, and export-path composition work.
+  **Parallelization**:
+  - **Can Run In Parallel**: YES
+  - **Parallel Group**: Wave 5 (with T25-T31, T38)
+  - **Blocks**: None
+  - **Blocked By**: T11, T14
+  **References**:
+  - `.sisyphus/drafts/handoff-plan-edits.md:28,35,43,77` — watermark requirements and task insertion points
+  - `.sisyphus/plans/lut-app-v2.md:11,80,92` — watermark deliverable and DoD references
+  **Acceptance Criteria**:
+  - [ ] `npx jest --testPathPattern watermark-frame --verbose` passes
+  - [ ] EXIF metadata is formatted into a watermark frame overlay on exported output
+  - [ ] Camera brand logos render when a known brand is detected
+  - [ ] Missing EXIF data degrades gracefully without blocking export
+  **QA Scenarios**:
+  ```
+  Scenario: Watermark frame renders EXIF metadata and logo
+    Tool: Bash
+    Steps:
+      1. Run `npx jest --testPathPattern watermark-frame --verbose`
+      2. Assert EXIF formatting and logo lookup tests pass
+      3. Assert composed export overlay snapshot matches expected layout
+    Expected Result: Watermark frame is export-ready and visually stable
+    Evidence: .sisyphus/evidence/task-37-watermark-frame.txt
+
+  Scenario: Missing EXIF fields fall back safely
+    Tool: Bash
+    Steps:
+      1. Run test with partial/missing EXIF metadata
+      2. Assert frame still renders with available values only
+      3. Assert export composition completes without crash
+    Expected Result: Metadata gaps do not break watermark export
+    Evidence: .sisyphus/evidence/task-37-watermark-fallback.txt
+  ```
+  **Commit**: YES
+  - Message: `feat(watermark): add exif frame overlay`
+  - Files: `src/watermark/render-watermark-frame.ts, src/watermark/format-exif.ts, src/watermark/__tests__/watermark-frame.test.ts`
+  - Pre-commit: `npx jest --testPathPattern watermark-frame --verbose`
+
+- [ ] 38. Border Radius + White Border Tools
+  **What to do**:
+  - RED: Write tests first for border-radius controls, white-border width behavior, preview rendering, and export composition
+  - GREEN:
+    - Add editor tools for rounded corners and optional white border framing
+    - Wire controls into the preview/render pipeline so users can see the effect live in the editor
+    - Persist radius and border settings in editor state and apply them consistently to final export output
+    - Keep white border styling visually clean and composable with crop/export behavior
+  - REFACTOR:
+    - Separate tool-state config, preview overlay logic, and export composition handling under `src/screens/editor/frame-tools/`
+    - Reuse shared render contracts rather than creating a one-off export-only path
+  **Must NOT do**:
+  - Do NOT make border tools preview-only; export must match editor state
+  - Do NOT let radius/border math clip unpredictably outside image bounds
+  - Do NOT bury these controls outside the core editor workflow
+  **Recommended Agent Profile**:
+  - **Category**: `visual-engineering`
+  - **Skills**: [`react-native-dev`]
+  - **Why**: This is a user-facing editor enhancement tightly coupled to preview and export polish.
+  **Parallelization**:
+  - **Can Run In Parallel**: YES
+  - **Parallel Group**: Wave 5 (with T25-T31, T37)
+  - **Blocks**: None
+  - **Blocked By**: T14, T8
+  **References**:
+  - `.sisyphus/drafts/handoff-plan-edits.md:25,36,44,78` — border-tool requirements and insertion points
+  - `.sisyphus/plans/lut-app-v2.md:5,10,80,93` — border tools in summary/deliverables/DoD
+  **Acceptance Criteria**:
+  - [ ] `npx jest --testPathPattern border-tools --verbose` passes
+  - [ ] Border radius and white border settings render correctly in preview
+  - [ ] Editor state persists radius/border settings immutably
+  - [ ] Export output matches the configured border styling
+  **QA Scenarios**:
+  ```
+  Scenario: Border radius and white border update preview correctly
+    Tool: Bash
+    Steps:
+      1. Run `npx jest --testPathPattern border-tools --verbose`
+      2. Assert preview/render tests pass for rounded corners and border width changes
+      3. Assert editor state updates persist expected values
+    Expected Result: Frame tools are interactive and stable in-editor
+    Evidence: .sisyphus/evidence/task-38-border-tools-preview.txt
+
+  Scenario: Export matches border tool configuration
+    Tool: Bash
+    Steps:
+      1. Run test with export composition using non-zero radius and white border values
+      2. Assert output fixture or snapshot matches configured styling
+      3. Assert crop/bounds remain valid
+    Expected Result: Export output reflects editor frame settings accurately
+    Evidence: .sisyphus/evidence/task-38-border-tools-export.txt
+  ```
+  **Commit**: YES
+  - Message: `feat(editor): add border radius and white border tools`
+  - Files: `src/screens/editor/frame-tools/FrameToolsPanel.tsx, src/screens/editor/frame-tools/__tests__/border-tools.test.tsx, src/screens/editor/frame-tools/useFrameTools.ts`
+  - Pre-commit: `npx jest --testPathPattern border-tools --verbose`
+
 ---
 
 ## Final Verification Wave (MANDATORY — after ALL implementation tasks)
@@ -2526,7 +2494,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - **Can Run In Parallel**: YES
   - **Parallel Group**: Final Verification Wave
   - **Blocks**: User okay
-  - **Blocked By**: T1-T36 complete
+  - **Blocked By**: T1-T38 complete
   **References**:
   - `.sisyphus/plans/lut-app-v2.md:69-117` — objectives and guardrails
   - `.sisyphus/plans/lut-app-v2.md:120-139` — verification strategy and evidence policy
@@ -2581,7 +2549,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - **Can Run In Parallel**: YES
   - **Parallel Group**: Final Verification Wave
   - **Blocks**: User okay
-  - **Blocked By**: T1-T36 complete
+  - **Blocked By**: T1-T38 complete
   **References**:
   - `.sisyphus/plans/lut-app-v2.md:87-97` — definition of done
   - `.sisyphus/plans/lut-app-v2.md:782-788` — verification commands
@@ -2626,8 +2594,8 @@ Wave FINAL (4 parallel reviews, then user okay):
     - compare before/after
     - crop
     - export
-    - gated AI path
-    - restore purchase path where available
+    - Quick Color Copy path
+    - watermark frame + border tools path
     - rescue UX for invalid import/error states
   - Save artifacts to `.sisyphus/evidence/final-qa/`
   **Must NOT do**:
@@ -2642,7 +2610,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - **Can Run In Parallel**: YES
   - **Parallel Group**: Final Verification Wave
   - **Blocks**: User okay
-  - **Blocked By**: T1-T36 complete
+  - **Blocked By**: T1-T38 complete
   **References**:
   - `.sisyphus/plans/lut-app-v2.md:127,136` — Detox is the required E2E framework
   - `.sisyphus/plans/lut-app-v2.md:134-138` — original QA policy by domain
@@ -2663,14 +2631,14 @@ Wave FINAL (4 parallel reviews, then user okay):
     Expected Result: Core editing workflow works in mobile QA environment
     Evidence: .sisyphus/evidence/final-qa/f3-core-mobile-flow/
 
-  Scenario: Rescue and gating flows are verified with Detox
+  Scenario: Rescue and post-pivot feature flows are verified with Detox
     Tool: Detox
     Steps:
-      1. Trigger invalid import or shader/AI failure-safe path
+      1. Trigger invalid import or shader/color-copy failure-safe path
       2. Assert rescue UI appears
-      3. Attempt AI access as free user and assert paywall/gate behavior
-    Expected Result: Mobile QA confirms error handling and monetization gates
-    Evidence: .sisyphus/evidence/final-qa/f3-error-and-gating/
+      3. Attempt Quick Color Copy and frame-tool flows, then assert recovery/feature behavior
+    Expected Result: Mobile QA confirms error handling and post-pivot editor features
+    Evidence: .sisyphus/evidence/final-qa/f3-error-and-feature-flows/
   ```
   **Commit**: NO
   - Message: N/A
@@ -2697,7 +2665,7 @@ Wave FINAL (4 parallel reviews, then user okay):
   - **Can Run In Parallel**: YES
   - **Parallel Group**: Final Verification Wave
   - **Blocks**: User okay
-  - **Blocked By**: T1-T36 complete
+  - **Blocked By**: T1-T38 complete
   **References**:
   - `.sisyphus/plans/lut-app-v2.md:108-117` — must-not-have scope boundaries
   - `.sisyphus/plans/lut-app-v2.md:142-246` — execution strategy, dependency matrix, agent dispatch
@@ -2737,10 +2705,10 @@ Wave FINAL (4 parallel reviews, then user okay):
 | Wave | Commit | Message Pattern |
 |------|--------|----------------|
 | 1 | Per task | `feat(core): init expo project`, `feat(lut-core): add cube parser` |
-| 2 | Per task | `feat(engine): add SKSL LUT shader`, `spike(ai): validate gemini API` |
+| 2 | Per task | `feat(engine): add SKSL LUT shader`, `feat(ads): add admob banner wrapper` |
 | 3 | Per task | `feat(editor): add editor layout`, `feat(editor): add LUT browse` |
-| 4 | Per task | `feat(ai): add style transfer service`, `feat(iap): add subscription` |
-| 5 | Per task | `feat(catalog): bundle 50-100 LUTs`, `feat(i18n): add vi+en` |
+| 4 | Per task | `feat(color-copy): add reinhard transfer`, `feat(ads): wire admob for all users` |
+| 5 | Per task | `feat(catalog): bundle 200+ LUTs`, `feat(i18n): add vi+en` |
 | 6 | Per task | `perf(engine): optimize 12MP`, `chore(release): add store metadata` |
 
 ---
@@ -2761,8 +2729,10 @@ npx detox test -c ios.sim.debug     # Expected: all E2E pass
 - [ ] All tests pass with 80%+ coverage
 - [ ] App runs on Android emulator + iOS Simulator
 - [ ] Identity LUT round-trip passes (GPU + CPU)
-- [ ] AI style transfer returns usable result
-- [ ] Subscription flow works in sandbox
+- [ ] Quick Color Copy generates LUT from reference
+- [ ] Watermark frame renders EXIF + logo
+- [ ] Border radius + white border functional
+- [ ] 200+ LUT catalog bundled
 - [ ] AdMob banner renders
 - [ ] All rescue UX visible for failure modes
 - [ ] Vietnamese + English strings load

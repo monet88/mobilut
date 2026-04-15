@@ -1,12 +1,12 @@
 {
-  "pid": 25332,
+  "pid": 32672,
   "parent_pid": 45716,
-  "started_at": "2026-04-15T10:48:39.737Z",
+  "started_at": "2026-04-15T14:33:33.222Z",
   "cwd": "F:\\CodeBase\\mobile\\lut-app",
   "notify_script": "C:\\Users\\monet\\AppData\\Roaming\\npm\\node_modules\\oh-my-codex\\dist\\scripts\\notify-hook.js",
   "authority_only": true,
   "poll_ms": 75,
-  "effective_poll_ms": 1000,
+  "effective_poll_ms": 75,
   "idle_max_poll_ms": 1000,
   "pid_file": null,
   "max_lifetime_ms": 0,
@@ -17,7 +17,7 @@
     "max_per_tick": 5,
     "run_count": 1,
     "leader_only": true,
-    "last_tick_at": "2026-04-15T10:48:39.741Z",
+    "last_tick_at": "2026-04-15T14:33:33.225Z",
     "last_result": {
       "processed": 0,
       "skipped": 0,
@@ -29,8 +29,8 @@
     "enabled": true,
     "leader_only": true,
     "stale_threshold_ms": 180000,
-    "precomputed_leader_stale": false,
-    "last_tick_at": "2026-04-15T10:48:39.743Z",
+    "precomputed_leader_stale": true,
+    "last_tick_at": "2026-04-15T14:33:33.227Z",
     "last_error": null,
     "run_count": 1
   },
@@ -57,7 +57,7 @@
   "fallback_auto_nudge": {
     "enabled": true,
     "stall_ms": 5000,
-    "last_tick_at": "2026-04-15T10:48:39.747Z",
+    "last_tick_at": "2026-04-15T14:33:33.235Z",
     "last_turn_at": "2026-04-15T07:36:24.711Z",
     "last_turn_count": 1,
     "last_message": "Đã check nhanh repo và plan hiện tại.\n\n## 1) Plan hiện tại đang ở trạng thái nào?\n**Tính đến ngày 20",
@@ -78,11 +78,11 @@
     "enabled": true,
     "base_ms": 75,
     "max_ms": 1000,
-    "current_ms": 1000,
-    "idle_streak": 26,
-    "last_tick_at": "2026-04-15T10:48:39.753Z",
-    "last_activity_at": "2026-04-15T10:48:13.534Z",
-    "last_activity_reason": "eligible_but_not_sent"
+    "current_ms": 75,
+    "idle_streak": 0,
+    "last_tick_at": "2026-04-15T14:33:33.243Z",
+    "last_activity_at": "2026-04-15T14:33:33.243Z",
+    "last_activity_reason": "leader_nudge"
   },
-  "last_cycle_activity": "eligible_but_not_sent"
+  "last_cycle_activity": "leader_nudge"
 }
