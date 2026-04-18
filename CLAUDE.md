@@ -2,6 +2,12 @@
 
 Cross-platform mobile photo grading app for Vietnamese creators. React Native + Expo Router + `@shopify/react-native-skia`. Local-first, no backend in v1.
 
+## Monorepo structure
+
+npm workspaces:
+- Root app: React Native + Expo
+- `packages/lut-core/`: Pure TypeScript LUT library (no RN dependencies)
+
 ## Project map
 
 - `app/` — Routes, layouts, navigation wiring only
@@ -12,24 +18,10 @@ Cross-platform mobile photo grading app for Vietnamese creators. React Native + 
 - `src/ui/` — Shared UI components
 - `packages/lut-core/` — LUT parse/validate/serialize/interpolate (pure TS, no RN)
 - `docs/adr/` — Architecture Decision Records
-- `.sisyphus/plans/lut-app-v2.md` — 12-wave execution plan
-- `TODOS.md` — Wave 0–11 checklist
 
 ## Path aliases
 
 `@core/*`, `@features/*`, `@services/*`, `@adapters/*`, `@ui/*` → `src/` equivalents. `@theme`, `@hooks`, `@lib`, `@i18n` → `src/` singletons. `@lut-core` → `packages/lut-core/src`.
-
-<important if="you need to run commands to build, test, or develop">
-
-| Command                | What it does             |
-| ---------------------- | ------------------------ |
-| `npx expo start`       | Start Expo dev server    |
-| `npx expo run:android` | Build and run on Android |
-| `npx expo run:ios`     | Build and run on iOS     |
-| `npx jest`             | Run tests                |
-| `npx tsc --noEmit`     | Type check               |
-
-</important>
 
 <important if="you are building the preview or export pipeline, or working with image rendering">
 - Preview path ≠ export path — preview optimized for responsiveness, export for full resolution. Export must never reuse downscaled preview bitmap.
@@ -68,114 +60,53 @@ Critical failures: malformed `.cube`, unsupported LUT size, invalid HaldCLUT PNG
 </important>
 
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+<important if="you are modifying a function, class, or method">
 
-This project is indexed by GitNexus as **mobilut** (670 symbols, 1280 relationships, 47 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+**GitNexus impact analysis is REQUIRED before editing any symbol.**
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+1. Run `gitnexus_impact({target: "symbolName", direction: "upstream"})` first
+2. Warn user if HIGH or CRITICAL risk — do not proceed without acknowledgment
+3. Run `gitnexus_detect_changes()` before committing
 
-## Always Do
+Risk levels: d=1 (WILL BREAK — must update), d=2 (LIKELY AFFECTED — should test), d=3 (MAY NEED TESTING).
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+</important>
 
-## When Debugging
+<important if="you are debugging or tracing an issue">
 
-1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
-2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
-3. `READ gitnexus://repo/mobilut/process/{processName}` — trace the full execution flow step by step
-4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
+Use GitNexus to trace execution flows:
 
-## When Refactoring
+1. `gitnexus_query({query: "<error or symptom>"})` — find related flows
+2. `gitnexus_context({name: "<suspect function>"})` — see callers, callees, process participation
+3. Read `gitnexus://repo/mobilut/process/{name}` — trace execution step by step
+4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})`
 
-- **Renaming**: MUST use `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` first. Review the preview — graph edits are safe, text_search edits need manual review. Then run with `dry_run: false`.
-- **Extracting/Splitting**: MUST run `gitnexus_context({name: "target"})` to see all incoming/outgoing refs, then `gitnexus_impact({target: "target", direction: "upstream"})` to find all external callers before moving code.
-- After any refactor: run `gitnexus_detect_changes({scope: "all"})` to verify only expected files changed.
+</important>
 
-## Never Do
+<important if="you are renaming, extracting, or refactoring code">
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+- **Renaming**: Use `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` — never find-and-replace
+- **Extracting**: Run `gitnexus_context` then `gitnexus_impact` to find all external callers first
+- **After refactor**: `gitnexus_detect_changes({scope: "all"})` to verify scope
 
-## Tools Quick Reference
+</important>
 
-| Tool | When to use | Command |
-|------|-------------|---------|
-| `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
-| `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
-| `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
-| `detect_changes` | Pre-commit scope check | `gitnexus_detect_changes({scope: "staged"})` |
-| `rename` | Safe multi-file rename | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
-| `cypher` | Custom graph queries | `gitnexus_cypher({query: "MATCH ..."})` |
+<important if="you are exploring unfamiliar code or need codebase context">
 
-## Impact Risk Levels
+Use GitNexus instead of grepping:
+- `gitnexus_query({query: "concept"})` — find execution flows by concept
+- `gitnexus_context({name: "symbolName"})` — 360° view of a symbol
+- Resources: `gitnexus://repo/mobilut/context`, `gitnexus://repo/mobilut/processes`
 
-| Depth | Meaning | Action |
-|-------|---------|--------|
-| d=1 | WILL BREAK — direct callers/importers | MUST update these |
-| d=2 | LIKELY AFFECTED — indirect deps | Should test |
-| d=3 | MAY NEED TESTING — transitive | Test if critical path |
+If tools warn index is stale: `npx gitnexus analyze` (add `--embeddings` to preserve embeddings).
 
-## Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/mobilut/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/mobilut/clusters` | All functional areas |
-| `gitnexus://repo/mobilut/processes` | All execution flows |
-| `gitnexus://repo/mobilut/process/{name}` | Step-by-step execution trace |
-
-## Self-Check Before Finishing
-
-Before completing any code modification task, verify:
-1. `gitnexus_impact` was run for all modified symbols
-2. No HIGH/CRITICAL risk warnings were ignored
-3. `gitnexus_detect_changes()` confirms changes match expected scope
-4. All d=1 (WILL BREAK) dependents were updated
-
-## Keeping the Index Fresh
-
-After committing code changes, the GitNexus index becomes stale. Re-run analyze to update it:
-
-```bash
-npx gitnexus analyze
-```
-
-If the index previously included embeddings, preserve them by adding `--embeddings`:
-
-```bash
-npx gitnexus analyze --embeddings
-```
-
-To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.embeddings` field shows the count (0 means no embeddings). **Running analyze without `--embeddings` will delete any previously generated embeddings.**
-
-> Claude Code users: A PostToolUse hook handles this automatically after `git commit` and `git merge`.
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
+</important>
 <!-- gitnexus:end -->
 
-
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
-## Beads Issue Tracker
+<important if="you are tracking tasks, creating issues, or managing work">
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
-
-### Quick Reference
+Use **bd (beads)** for ALL task tracking — not TodoWrite, TaskCreate, or markdown TODOs.
 
 ```bash
 bd ready              # Find available work
@@ -184,35 +115,24 @@ bd update <id> --claim  # Claim work
 bd close <id>         # Complete work
 ```
 
-### Rules
+Run `bd prime` for full command reference. Use `bd remember` for persistent knowledge.
 
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+</important>
 
-## Session Completion
+<important if="you are ending a work session or about to say done or complete">
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+Work is NOT complete until `git push` succeeds.
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. File issues for remaining work (`bd create`)
+2. Run quality gates if code changed
+3. Close finished issues (`bd close`)
+4. **PUSH TO REMOTE:**
    ```bash
-   git pull --rebase
-   bd dolt push
-   git push
+   git pull --rebase && bd dolt push && git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+NEVER stop before pushing — that leaves work stranded locally.
+
+</important>
 <!-- END BEADS INTEGRATION -->
