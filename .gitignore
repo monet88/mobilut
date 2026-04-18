@@ -12,3 +12,10 @@
 .omx\setup-scope.json
 node_modules
 .gitnexus
+.omx/
+.omc/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

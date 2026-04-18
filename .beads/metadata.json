@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "mobilut",
+  "project_id": "c3604c7c-d253-4a05-aa5f-2aacfa61894b"
+}
