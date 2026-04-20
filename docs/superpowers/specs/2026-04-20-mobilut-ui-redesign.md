@@ -1442,7 +1442,7 @@ See the Decision Audit Trail above.
 - Eng Voices: Codex unavailable, Claude subagent 9 issues, Consensus N/A.
 - DX: skipped, no developer-facing scope.
 
-### Deferred to TODOS.md
+### Deferred Follow-up
 
 - Light-mode support
 - Batch hardening work beyond the approved Phase 3 scope
