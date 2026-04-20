@@ -10,6 +10,10 @@
 
 **Prerequisites:** Phase 1A/1E/1F and Phase 2D complete.
 
+**Repo alignment notes:**
+- Blend extends the sheet-based editor shell introduced in Phase 1D/1E; keep `tool-sheet.tsx` / `blend-sheet.tsx` work inside that future editor surface rather than the current scroll-only shell.
+- Keep Blend behavior tests under `__tests__/features/` and pure transform tests beside `src/core/render/` only when they exercise core logic.
+
 ---
 
 ## File Structure

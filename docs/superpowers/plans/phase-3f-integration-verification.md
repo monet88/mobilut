@@ -10,6 +10,10 @@
 
 **Prerequisites:** Phase 3A through Phase 3E complete.
 
+**Repo alignment notes:**
+- These regression suites assume the Phase 1 Home feature and Phase 3 batch feature directories already exist (`src/features/home`, `src/features/batch`). Do not backport them into the current import-first route structure.
+- Keep verification files under `__tests__/features/` and `__tests__/services/`, matching the repo's current Jest layout.
+
 ---
 
 ## File Structure

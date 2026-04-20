@@ -6,9 +6,14 @@
 
 **Architecture:** Batch uses a workspace model with thumbnail cache and export queue. Blend requires layer state management. Ads integrate via SDK with offline fallback.
 
-**Tech Stack:** React Native, Expo Router, expo-ads-admob, TypeScript
+**Tech Stack:** React Native, Expo Router, `react-native-google-mobile-ads`, TypeScript
 
 **Prerequisites:** Phase 1 and Phase 2 must be complete - trusted single-photo loop with stylistic tools working.
+
+**Repo alignment notes:**
+- Follow the current Expo Router folder convention for static routes: Batch should live at `app/batch/index.tsx`, not `app/batch.tsx`.
+- When Home exists by Phase 3, extend the Phase 1 Home surface rather than introducing a second landing route.
+- Keep tests under `__tests__/features/` and `__tests__/services/` to match the existing repo layout.
 
 ---
 
@@ -39,7 +44,7 @@
 | `src/features/home/home-ad-banner.tsx` | Home ad banner component |
 | `src/core/render/blend-transform.ts` | Blend layer compositor |
 | `src/adapters/skia/blend-shader.ts` | Skia blend mode shaders |
-| `app/batch.tsx` | Batch route |
+| `app/batch/index.tsx` | Batch route |
 
 ### Modified Files
 
@@ -1426,7 +1431,7 @@ EOF
 ## Task 5: Batch Route and Home Integration
 
 **Files:**
-- Create: `app/batch.tsx`
+- Create: `app/batch/index.tsx`
 - Modify: `src/features/home/home.screen.tsx`
 
 ### Step 5.1: Create batch route
@@ -1434,7 +1439,7 @@ EOF
 - [ ] **Step 5.1.1: Create route file**
 
 ```typescript
-// app/batch.tsx
+// app/batch/index.tsx
 import { BatchScreen } from '@features/batch';
 
 export default function Batch() {
@@ -1445,7 +1450,7 @@ export default function Batch() {
 - [ ] **Step 5.1.2: Commit**
 
 ```bash
-git add app/batch.tsx
+git add app/batch/index.tsx
 git commit -m "$(cat <<'EOF'
 feat(routes): add /batch route
 EOF
@@ -1941,100 +1946,34 @@ EOF
 
 ```typescript
 // src/services/ads/ad-manager.ts
-import { Platform } from 'react-native';
+import mobileAds, { TestIds } from 'react-native-google-mobile-ads';
 
-export interface AdConfig {
-  readonly bannerId: string;
-  readonly interstitialId: string;
-  readonly testMode: boolean;
+let initialization: Promise<void> | null = null;
+
+export interface HomeBannerPolicy {
+  readonly adsReady: boolean;
+  readonly loadFailed: boolean;
 }
 
-export interface AdState {
-  readonly isInitialized: boolean;
-  readonly isOnline: boolean;
-  readonly lastInterstitialTime: number;
+export function getHomeBannerUnitId(): string {
+  return __DEV__
+    ? TestIds.BANNER
+    : process.env.EXPO_PUBLIC_HOME_BANNER_AD_UNIT_ID ?? TestIds.BANNER;
 }
 
-const INTERSTITIAL_COOLDOWN_MS = 5 * 60 * 1000;
-
-let adState: AdState = {
-  isInitialized: false,
-  isOnline: false,
-  lastInterstitialTime: 0,
-};
-
-export async function initializeAds(config: AdConfig): Promise<boolean> {
-  try {
-    // Dynamic import to handle missing module gracefully
-    const AdMob = await import('expo-ads-admob').catch(() => null);
-    if (!AdMob) {
-      console.warn('expo-ads-admob not available');
-      return false;
-    }
-
-    await AdMob.setTestDeviceIDAsync(config.testMode ? 'EMULATOR' : null);
-    adState = { ...adState, isInitialized: true, isOnline: true };
-    return true;
-  } catch (error) {
-    console.warn('Failed to initialize ads:', error);
-    return false;
-  }
-}
-
-export function getAdState(): AdState {
-  return adState;
-}
-
-export function canShowInterstitial(): boolean {
-  if (!adState.isInitialized || !adState.isOnline) {
-    return false;
+export function initializeAds(): Promise<void> {
+  if (!initialization) {
+    initialization = mobileAds()
+      .initialize()
+      .then(() => undefined)
+      .catch(() => undefined);
   }
 
-  const timeSinceLastAd = Date.now() - adState.lastInterstitialTime;
-  return timeSinceLastAd >= INTERSTITIAL_COOLDOWN_MS;
+  return initialization;
 }
 
-export async function showInterstitial(): Promise<boolean> {
-  if (!canShowInterstitial()) {
-    return false;
-  }
-
-  try {
-    const AdMob = await import('expo-ads-admob').catch(() => null);
-    if (!AdMob) {
-      return false;
-    }
-
-    await AdMob.AdMobInterstitial.setAdUnitID(getInterstitialId());
-    await AdMob.AdMobInterstitial.requestAdAsync();
-    await AdMob.AdMobInterstitial.showAdAsync();
-
-    adState = { ...adState, lastInterstitialTime: Date.now() };
-    return true;
-  } catch (error) {
-    console.warn('Failed to show interstitial:', error);
-    return false;
-  }
-}
-
-export function getBannerId(): string {
-  return Platform.select({
-    ios: 'ca-app-pub-xxxxx/banner-ios',
-    android: 'ca-app-pub-xxxxx/banner-android',
-    default: '',
-  });
-}
-
-export function getInterstitialId(): string {
-  return Platform.select({
-    ios: 'ca-app-pub-xxxxx/interstitial-ios',
-    android: 'ca-app-pub-xxxxx/interstitial-android',
-    default: '',
-  });
-}
-
-export function setOnlineStatus(isOnline: boolean): void {
-  adState = { ...adState, isOnline };
+export function shouldRenderHomeBanner(policy: HomeBannerPolicy): boolean {
+  return policy.adsReady && !policy.loadFailed;
 }
 ```
 
@@ -2042,16 +1981,8 @@ export function setOnlineStatus(isOnline: boolean): void {
 
 ```typescript
 // src/services/ads/index.ts
-export type { AdConfig, AdState } from './ad-manager';
-export {
-  initializeAds,
-  getAdState,
-  canShowInterstitial,
-  showInterstitial,
-  getBannerId,
-  getInterstitialId,
-  setOnlineStatus,
-} from './ad-manager';
+export type { HomeBannerPolicy } from './ad-manager';
+export { getHomeBannerUnitId, initializeAds, shouldRenderHomeBanner } from './ad-manager';
 ```
 
 - [ ] **Step 8.1.3: Commit**
@@ -2078,45 +2009,43 @@ EOF
 
 ```typescript
 // src/features/home/home-ad-banner.tsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { getAdState, getBannerId } from '@services/ads';
-import { tokens } from '@theme/tokens';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+
+import { getHomeBannerUnitId, initializeAds, shouldRenderHomeBanner } from '@services/ads';
+import { Text } from '@ui/primitives';
+import { colors, spacing } from '@theme/tokens';
 
 export function HomeAdBanner(): React.JSX.Element | null {
-  const [isVisible, setIsVisible] = useState(false);
-  const [AdMobBanner, setAdMobBanner] = useState<any>(null);
+  const [adsReady, setAdsReady] = React.useState(false);
+  const [loadFailed, setLoadFailed] = React.useState(false);
 
-  useEffect(() => {
-    const loadAdMob = async () => {
-      const adState = getAdState();
-      if (!adState.isInitialized || !adState.isOnline) {
-        setIsVisible(false);
-        return;
-      }
+  React.useEffect(() => {
+    let mounted = true;
 
-      try {
-        const AdMob = await import('expo-ads-admob');
-        setAdMobBanner(() => AdMob.AdMobBanner);
-        setIsVisible(true);
-      } catch {
-        setIsVisible(false);
+    void initializeAds().then(() => {
+      if (mounted) {
+        setAdsReady(true);
       }
+    });
+
+    return () => {
+      mounted = false;
     };
-
-    loadAdMob();
   }, []);
 
-  if (!isVisible || !AdMobBanner) {
+  if (!shouldRenderHomeBanner({ adsReady, loadFailed })) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      <AdMobBanner
-        bannerSize="smartBannerPortrait"
-        adUnitID={getBannerId()}
-        onAdFailedToLoad={() => setIsVisible(false)}
+      <Text variant="caption">Sponsored</Text>
+      <BannerAd
+        unitId={getHomeBannerUnitId()}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        onAdFailedToLoad={() => setLoadFailed(true)}
       />
     </View>
   );
@@ -2124,9 +2053,11 @@ export function HomeAdBanner(): React.JSX.Element | null {
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    backgroundColor: tokens.colors.surfaceDark1,
+    gap: spacing.xs,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    backgroundColor: colors.surface,
+    padding: spacing.md,
   },
 });
 ```

@@ -12,6 +12,10 @@
 
 **Prerequisites:** Phase 2A, 2B, 2C complete
 
+**Repo alignment notes:**
+- Keep this work inside the existing `src/features/editor` / `src/core/edit-session` surface area from Phase 1.
+- Put the Phase 2 integration test under `__tests__/features/` instead of `src/features/editor/`.
+
 ---
 
 ## File Structure
@@ -311,10 +315,10 @@ git commit -m "feat(editor): wire Phase 2 sheets to EditorScreen"
 - [ ] **Step 7.1.1: Create test file**
 
 ```typescript
-// src/features/editor/phase-2-tools.test.tsx
+// __tests__/features/editor.phase-2-tools.test.tsx
 import { describe, it, expect } from '@jest/globals';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { EditorScreen } from './editor.screen';
+import { EditorScreen } from '@features/editor';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ assetId: 'test-asset' }),
@@ -376,7 +380,7 @@ Expected: PASS
 - [ ] **Step 7.1.3: Commit**
 
 ```bash
-git add src/features/editor/phase-2-tools.test.tsx
+git add __tests__/features/editor.phase-2-tools.test.tsx
 git commit -m "test(editor): add Phase 2 tools integration tests"
 ```
 

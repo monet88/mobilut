@@ -10,6 +10,10 @@
 
 **Prerequisites:** Phase 1C/1F, Phase 2D, Phase 3A, and Phase 3B complete.
 
+**Repo alignment notes:**
+- Follow the current Expo Router folder convention for static routes, so Batch lives at `app/batch/index.tsx`.
+- Reuse the Phase 1 Home surface once it exists; do not introduce a second landing route.
+
 ---
 
 ## File Structure
@@ -24,7 +28,7 @@
 | `src/features/batch/use-batch-session.ts` | Batch screen orchestration hook |
 | `src/features/batch/batch.screen.tsx` | Phase 3 batch workspace screen |
 | `src/features/batch/index.ts` | Batch feature barrel |
-| `app/batch.tsx` | Expo Router batch route |
+| `app/batch/index.tsx` | Expo Router batch route |
 | `__tests__/features/batch-photo-picker.test.tsx` | Picker behavior coverage |
 | `__tests__/features/batch-preview.test.tsx` | Thumbnail strip + preview coverage |
 | `__tests__/features/use-batch-session.test.tsx` | Session orchestration coverage |
@@ -810,7 +814,7 @@ EOF
 **Files:**
 - Create: `src/features/batch/batch.screen.tsx`
 - Create: `src/features/batch/index.ts`
-- Create: `app/batch.tsx`
+- Create: `app/batch/index.tsx`
 - Test: `__tests__/features/batch.screen.test.tsx`
 - Modify: `app/_layout.tsx`
 - Modify: `src/features/home/home.screen.tsx`
@@ -994,7 +998,7 @@ export * from './use-batch-session';
 ```
 
 ```tsx
-// app/batch.tsx
+// app/batch/index.tsx
 import React from 'react';
 
 import { BatchScreen } from '@features/batch';
@@ -1006,7 +1010,7 @@ export default function BatchRoute(): React.JSX.Element {
 
 ```tsx
 // app/_layout.tsx (add one stack entry)
-<Stack.Screen name="batch" options={{ title: 'Batch', headerShown: false }} />
+<Stack.Screen name="batch/index" options={{ title: 'Batch', headerShown: false }} />
 ```
 
 ```tsx
@@ -1026,7 +1030,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/features/batch src/features/home/home.screen.tsx app/batch.tsx app/_layout.tsx __tests__/features/batch.screen.test.tsx
+git add src/features/batch src/features/home/home.screen.tsx app/batch/index.tsx app/_layout.tsx __tests__/features/batch.screen.test.tsx
 git commit -m "$(cat <<'EOF'
 Expose the batch workspace as a first-class screen once the batch services are ready
 

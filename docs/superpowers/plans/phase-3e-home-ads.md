@@ -10,6 +10,10 @@
 
 **Prerequisites:** Phase 1C complete. `react-native-google-mobile-ads` plugin config remains present in `app.config.js`.
 
+**Repo alignment notes:**
+- This phase assumes Phase 1C already moved Home into `src/features/home/home.screen.tsx` while `app/index.tsx` remains the entry route.
+- Keep ads non-blocking: if the Home migration is not landed yet, finish Phase 1C first instead of bolting banner logic onto the current import-first `app/index.tsx`.
+
 ---
 
 ## File Structure

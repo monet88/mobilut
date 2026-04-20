@@ -12,6 +12,10 @@
 
 **Prerequisites:** Phase 1E (Tool Sheets) complete
 
+**Repo alignment notes:**
+- Keep tests under `__tests__/features/` rather than colocating them under `src/features/`.
+- `src/features/settings/settings.screen.tsx` currently uses `getPreferences` / `setPreference`, `useTranslation`, and `initI18n`; update that structure instead of assuming a legacy settings-row implementation.
+
 ---
 
 ## File Structure
@@ -26,8 +30,8 @@
 ### New Files
 | Path | Responsibility |
 |------|----------------|
-| `src/features/editor/editor.screen.test.tsx` | Editor integration tests |
-| `src/features/home/home.screen.test.tsx` | Home integration tests |
+| `__tests__/features/editor.screen.test.tsx` | Editor integration tests |
+| `__tests__/features/home.screen.test.tsx` | Home integration tests |
 
 ---
 
@@ -42,32 +46,13 @@
 
 ```typescript
 // src/features/settings/settings.screen.tsx
-// Remove the language switcher row
-// Hide or disable the Theme row
-
-// Find and remove:
-// - Language selection row
-// - Language-related state and handlers
-
-// For Theme row, either:
-// Option A: Remove it entirely
-// Option B: Keep it but disable with a "Coming soon" label
-
-// Example change for Theme row:
-<View style={[styles.settingRow, styles.disabled]}>
-  <View style={styles.settingIcon}>
-    <IconButton icon="palette" disabled />
-  </View>
-  <View style={styles.settingInfo}>
-    <Text style={styles.settingTitle}>Theme</Text>
-    <Text style={styles.settingSubtitle}>Dark (Coming soon)</Text>
-  </View>
-</View>
-
-// Add disabled style:
-disabled: {
-  opacity: 0.5,
-},
+// Update the current preferences-driven screen rather than rebuilding it.
+//
+// 1. Remove LANGUAGE_OPTIONS and any UI that lets users switch away from English in v1.
+// 2. Keep export quality + watermark controls intact.
+// 3. Stop exposing the theme picker in the rendered settings list; preserve theme/i18n readiness in storage only if needed for future migration.
+// 4. Keep the existing getPreferences / setPreference flow, but delete the language-specific update branch that calls i18n.changeLanguage from Settings.
+// 5. Update copy to reflect the approved English-only v1 posture without breaking the centralized i18n architecture.
 ```
 
 - [ ] **Step 1.1.2: Commit**
@@ -483,18 +468,18 @@ git commit -m "feat(editor): add draft save/load to useEditorSession"
 ## Task 4: Integration Tests
 
 **Files:**
-- Create: `src/features/editor/editor.screen.test.tsx`
-- Create: `src/features/home/home.screen.test.tsx`
+- Create: `__tests__/features/editor.screen.test.tsx`
+- Create: `__tests__/features/home.screen.test.tsx`
 
 ### Step 4.1: Editor integration tests
 
 - [ ] **Step 4.1.1: Create test file**
 
 ```typescript
-// src/features/editor/editor.screen.test.tsx
+// __tests__/features/editor.screen.test.tsx
 import { describe, it, expect } from '@jest/globals';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { EditorScreen } from './editor.screen';
+import { EditorScreen } from '@features/editor';
 
 // Mock expo-router
 jest.mock('expo-router', () => ({
@@ -565,7 +550,7 @@ Expected: PASS
 - [ ] **Step 4.1.3: Commit**
 
 ```bash
-git add src/features/editor/editor.screen.test.tsx
+git add __tests__/features/editor.screen.test.tsx
 git commit -m "test(editor): add integration tests"
 ```
 
@@ -574,10 +559,10 @@ git commit -m "test(editor): add integration tests"
 - [ ] **Step 4.2.1: Create test file**
 
 ```typescript
-// src/features/home/home.screen.test.tsx
+// __tests__/features/home.screen.test.tsx
 import { describe, it, expect } from '@jest/globals';
 import { render, fireEvent } from '@testing-library/react-native';
-import { HomeScreen } from './home.screen';
+import { HomeScreen } from '@features/home';
 
 // Mock expo-router
 jest.mock('expo-router', () => ({
@@ -629,7 +614,7 @@ Expected: PASS
 - [ ] **Step 4.2.3: Commit**
 
 ```bash
-git add src/features/home/home.screen.test.tsx
+git add __tests__/features/home.screen.test.tsx
 git commit -m "test(home): add integration tests"
 ```
 

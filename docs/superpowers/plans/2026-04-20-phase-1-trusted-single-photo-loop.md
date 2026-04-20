@@ -8,6 +8,11 @@
 
 **Tech Stack:** React Native, Expo Router, @shopify/react-native-skia, TypeScript, file-based draft storage
 
+**Repo alignment notes:**
+- Keep Home on `app/index.tsx`; the current repo does not use a parallel `/home` route.
+- Place integration tests under `__tests__/features/` to match the existing Jest layout rather than colocating `*.test.tsx` under `src/features/`.
+- Where older snippets show leaf imports such as `@ui/primitives/text` or `tokens.colors`, prefer the current repo barrels (`@ui/primitives`, `@ui/layout`) and `colors`/`spacing` exports from `@theme/tokens`.
+
 ---
 
 ## File Structure
@@ -37,7 +42,7 @@
 | `src/features/editor/use-modification-log.ts` | Coalesced history management |
 | `src/ui/layout/tool-panel.tsx` | Glass background panel for sheets |
 | `src/ui/composite/tool-grid.tsx` | 4-column tool icon grid |
-| `app/home.tsx` | New Home route |
+| `app/index.tsx` | Home entry route (replaces the current import-first landing screen) |
 
 ### Modified Files
 
@@ -49,7 +54,7 @@
 | `src/features/editor/use-editor-session.ts` | Add draft save/load, coalesced commits |
 | `src/features/editor/editor-reducer.ts` | Add modification log actions |
 | `src/features/settings/settings.screen.tsx` | Hide Theme row, remove language switcher |
-| `app/index.tsx` | Redirect to /home |
+| `app/index.tsx` | Replace the current ImportImageScreen landing route with HomeScreen |
 | `app/_layout.tsx` | Update navigation structure |
 
 ---
@@ -992,7 +997,6 @@ EOF
 - Create: `src/features/home/draft-grid.tsx`
 - Create: `src/features/home/use-drafts.ts`
 - Create: `src/features/home/index.ts`
-- Create: `app/home.tsx`
 - Modify: `app/index.tsx`
 
 ### Step 6.1: Create useDrafts hook
@@ -1259,36 +1263,27 @@ EOF
 )"
 ```
 
-### Step 6.4: Wire up routes
+### Step 6.4: Wire Home into the root route
 
-- [ ] **Step 6.4.1: Create home route**
+- [ ] **Step 6.4.1: Replace the import-first index route with HomeScreen**
 
 ```typescript
-// app/home.tsx
+// app/index.tsx
+import React from 'react';
+
 import { HomeScreen } from '@features/home';
 
-export default function Home() {
+export default function IndexRoute(): React.JSX.Element {
   return <HomeScreen />;
 }
 ```
 
-- [ ] **Step 6.4.2: Update index to redirect**
-
-```typescript
-// app/index.tsx
-import { Redirect } from 'expo-router';
-
-export default function Index() {
-  return <Redirect href="/home" />;
-}
-```
-
-- [ ] **Step 6.4.3: Commit**
+- [ ] **Step 6.4.2: Commit**
 
 ```bash
-git add app/home.tsx app/index.tsx
+git add app/index.tsx
 git commit -m "$(cat <<'EOF'
-feat(routes): add /home route and redirect from index
+feat(routes): make index the Home entry route
 EOF
 )"
 ```
@@ -2300,18 +2295,18 @@ EOF
 ## Task 12: Integration and Regression Tests
 
 **Files:**
-- Create: `src/features/editor/editor.screen.test.tsx`
-- Create: `src/features/home/home.screen.test.tsx`
+- Create: `__tests__/features/editor.screen.test.tsx`
+- Create: `__tests__/features/home.screen.test.tsx`
 
 ### Step 12.1: Add Editor integration test
 
 - [ ] **Step 12.1.1: Write Editor test**
 
 ```typescript
-// src/features/editor/editor.screen.test.tsx
+// __tests__/features/editor.screen.test.tsx
 import { describe, it, expect } from '@jest/globals';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { EditorScreen } from './editor.screen';
+import { EditorScreen } from '@features/editor';
 
 describe('EditorScreen', () => {
   it('renders bottom toolbar with 7 items', () => {
@@ -2344,7 +2339,7 @@ Expected: PASS
 - [ ] **Step 12.1.3: Commit**
 
 ```bash
-git add src/features/editor/editor.screen.test.tsx
+git add __tests__/features/editor.screen.test.tsx
 git commit -m "$(cat <<'EOF'
 test(editor): add integration tests for Editor screen
 EOF
@@ -2356,10 +2351,10 @@ EOF
 - [ ] **Step 12.2.1: Write Home test**
 
 ```typescript
-// src/features/home/home.screen.test.tsx
+// __tests__/features/home.screen.test.tsx
 import { describe, it, expect } from '@jest/globals';
 import { render, fireEvent } from '@testing-library/react-native';
-import { HomeScreen } from './home.screen';
+import { HomeScreen } from '@features/home';
 
 describe('HomeScreen', () => {
   it('renders ADD NEW PHOTO button', () => {
@@ -2385,7 +2380,7 @@ Expected: PASS
 - [ ] **Step 12.2.3: Commit**
 
 ```bash
-git add src/features/home/home.screen.test.tsx
+git add __tests__/features/home.screen.test.tsx
 git commit -m "$(cat <<'EOF'
 test(home): add integration tests for Home screen
 EOF

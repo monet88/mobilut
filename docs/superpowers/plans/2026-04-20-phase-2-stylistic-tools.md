@@ -10,6 +10,10 @@
 
 **Prerequisites:** Phase 1 must be complete - render parity, draft persistence, and editor shell must be working.
 
+**Repo alignment notes:**
+- Extend the existing `src/features/editor`, `src/core/edit-session`, `src/features/preset-browser`, and `src/services/image` surfaces; do not create a parallel editor stack.
+- Keep new editor-facing integration tests under `__tests__/features/` to match the current Jest layout.
+
 ---
 
 ## File Structure
@@ -1367,10 +1371,10 @@ EOF
 - [ ] **Step 9.2.1: Write Phase 2 integration test**
 
 ```typescript
-// src/features/editor/phase-2-tools.test.tsx
+// __tests__/features/editor.phase-2-tools.test.tsx
 import { describe, it, expect } from '@jest/globals';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { EditorScreen } from './editor.screen';
+import { EditorScreen } from '@features/editor';
 
 describe('Phase 2 Tools', () => {
   it('opens Artistic Look sheet from Tools grid', async () => {
@@ -1416,7 +1420,7 @@ Expected: PASS
 - [ ] **Step 9.2.3: Commit**
 
 ```bash
-git add src/features/editor/phase-2-tools.test.tsx
+git add __tests__/features/editor.phase-2-tools.test.tsx
 git commit -m "$(cat <<'EOF'
 test(editor): add Phase 2 tools integration tests
 EOF

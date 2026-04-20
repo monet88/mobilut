@@ -12,6 +12,11 @@
 
 **Prerequisites:** Phase 1B (Draft Persistence) complete
 
+**Repo alignment notes:**
+- Implement Home as the root `app/index.tsx` screen; do not add a separate `app/home.tsx` route.
+- Keep any new Home tests under `__tests__/features/` to match the repo's current Jest structure.
+- Prefer current UI barrels (`@ui/primitives`, `@ui/layout`) and `colors`/`spacing` from `@theme/tokens` when translating the example snippets into real code.
+
 ---
 
 ## File Structure
@@ -23,12 +28,12 @@
 | `src/features/home/draft-grid.tsx` | Draft thumbnails grid |
 | `src/features/home/home.screen.tsx` | Home screen component |
 | `src/features/home/index.ts` | Barrel export |
-| `app/home.tsx` | Home route |
+| `app/index.tsx` | Root Home route |
 
 ### Modified Files
 | Path | Changes |
 |------|---------|
-| `app/index.tsx` | Redirect to /home |
+| `app/index.tsx` | Replace the import-first landing screen with HomeScreen |
 
 ---
 
@@ -435,38 +440,28 @@ git commit -m "feat(home): add barrel exports"
 ## Task 5: Route Wiring
 
 **Files:**
-- Create: `app/home.tsx`
 - Modify: `app/index.tsx`
 
-### Step 5.1: Create home route
+### Step 5.1: Mount HomeScreen at the root route
 
-- [ ] **Step 5.1.1: Create route file**
+- [ ] **Step 5.1.1: Replace the import-first index route**
 
 ```typescript
-// app/home.tsx
+// app/index.tsx
+import React from 'react';
+
 import { HomeScreen } from '@features/home';
 
-export default function Home() {
+export default function IndexRoute(): React.JSX.Element {
   return <HomeScreen />;
 }
 ```
 
-- [ ] **Step 5.1.2: Update index redirect**
-
-```typescript
-// app/index.tsx
-import { Redirect } from 'expo-router';
-
-export default function Index() {
-  return <Redirect href="/home" />;
-}
-```
-
-- [ ] **Step 5.1.3: Commit**
+- [ ] **Step 5.1.2: Commit**
 
 ```bash
-git add app/home.tsx app/index.tsx
-git commit -m "feat(routes): add /home route and redirect"
+git add app/index.tsx
+git commit -m "feat(routes): make index the Home entry route"
 ```
 
 ---
