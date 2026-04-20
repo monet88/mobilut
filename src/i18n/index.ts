@@ -9,7 +9,7 @@ export const resources = {
   vi: { translation: vi },
 } as const;
 
-export function initI18n(language: 'en' | 'vi' = 'vi'): void {
+export function initI18n(language: 'en' | 'vi' = 'en'): void {
   if (!i18n.isInitialized) {
     void i18n.use(initReactI18next).init({
       resources,
