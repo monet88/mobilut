@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-Cross-platform mobile photo grading app for Vietnamese creators. React Native + Expo Router + `@shopify/react-native-skia`. Local-first, no backend in v1.
+Cross-platform mobile photo grading app for creators. React Native + Expo Router + `@shopify/react-native-skia`. Local-first, no backend in v1. Current product direction keeps the v1 UI English-only while preserving i18n-ready architecture for future Vietnamese support.
 
 ## Monorepo structure
 
@@ -55,7 +55,8 @@ Critical failures: malformed `.cube`, unsupported LUT size, invalid HaldCLUT PNG
 </important>
 
 <important if="you are deciding what to implement or questioning feature scope">
-- RAW decode/edit, cloud sync, user accounts, live camera preview, batch processing — all deferred
+- RAW decode/edit, cloud sync, user accounts, live camera preview — all deferred
+- Batch processing is planned for a later milestone, not part of the initial trusted single-photo loop
 - All features must work offline
 </important>
 
@@ -103,126 +104,92 @@ If tools warn index is stale: `npx gitnexus analyze` (add `--embeddings` to pres
 </important>
 <!-- gitnexus:end -->
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:f65d5d33 -->
-## Issue Tracking with bd (beads)
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+<important if="you are tracking tasks, creating issues, or managing work">
 
-**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
-
-### Why bd?
-
-- Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Dolt-powered version control with native sync
-- Agent-optimized: JSON output, ready work detection, discovered-from links
-- Prevents duplicate tracking systems and confusion
-
-### Quick Start
-
-**Check for ready work:**
+Use **bd (beads)** for ALL task tracking — not TodoWrite, TaskCreate, or markdown TODOs.
 
 ```bash
-bd ready --json
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>         # Complete work
 ```
 
-**Create new issues:**
+Run `bd prime` for full command reference. Use `bd remember` for persistent knowledge.
 
-```bash
-bd create "Issue title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" --description="What this issue is about" -p 1 --deps discovered-from:bd-123 --json
-```
+</important>
 
-**Claim and update:**
+<important if="you are ending a work session or about to say done or complete">
 
-```bash
-bd update <id> --claim --json
-bd update bd-42 --priority 1 --json
-```
+Work is NOT complete until `git push` succeeds.
 
-**Complete work:**
-
-```bash
-bd close bd-42 --reason "Completed" --json
-```
-
-### Issue Types
-
-- `bug` - Something broken
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature with subtasks
-- `chore` - Maintenance (dependencies, tooling)
-
-### Priorities
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-### Workflow for AI Agents
-
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task atomically**: `bd update <id> --claim`
-3. **Work on it**: Implement, test, document
-4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
-
-### Quality
-- Use `--acceptance` and `--design` fields when creating issues
-- Use `--validate` to check description completeness
-
-### Lifecycle
-- `bd defer <id>` / `bd supersede <id>` for issue management
-- `bd stale` / `bd orphans` / `bd lint` for hygiene
-- `bd human <id>` to flag for human decisions
-- `bd formula list` / `bd mol pour <name>` for structured workflows
-
-### Auto-Sync
-
-bd automatically syncs via Dolt:
-
-- Each write auto-commits to Dolt history
-- Use `bd dolt push`/`bd dolt pull` for remote sync
-- No manual export/import needed!
-
-### Important Rules
-
-- ✅ Use bd for ALL task tracking
-- ✅ Always use `--json` flag for programmatic use
-- ✅ Link discovered work with `discovered-from` dependencies
-- ✅ Check `bd ready` before asking "what should I work on?"
-- ❌ Do NOT create markdown TODO lists
-- ❌ Do NOT use external issue trackers
-- ❌ Do NOT duplicate tracking systems
-
-For more details, see README.md and docs/QUICKSTART.md.
-
-## Session Completion
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. File issues for remaining work (`bd create`)
+2. Run quality gates if code changed
+3. Close finished issues (`bd close`)
+4. **PUSH TO REMOTE:**
    ```bash
-   git pull --rebase
-   bd dolt push
-   git push
+   git pull --rebase && bd dolt push && git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+NEVER stop before pushing — that leaves work stranded locally.
 
+</important>
 <!-- END BEADS INTEGRATION -->
-- If using XcodeBuildMCP, use the installed XcodeBuildMCP skill before calling XcodeBuildMCP tools.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
