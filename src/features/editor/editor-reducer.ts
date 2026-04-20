@@ -1,3 +1,4 @@
+import type { DraftRecord } from '@core/draft';
 import type { EditAction } from '@core/edit-session/edit-action';
 import {
   createInitialEditState,
@@ -18,6 +19,7 @@ export type EditorAction =
   | { readonly type: 'REDO' }
   | { readonly type: 'SET_LOADING'; readonly loading: boolean }
   | { readonly type: 'SET_ERROR'; readonly error: Error | null }
+  | { readonly type: 'HYDRATE'; readonly draft: DraftRecord }
   | {
       readonly type: 'RESET';
       readonly assetId: string;
@@ -36,6 +38,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, isLoading: action.loading };
     case 'SET_ERROR':
       return { ...state, error: action.error };
+    case 'HYDRATE':
+      return { history: action.draft.history, isLoading: false, error: null };
     case 'RESET': {
       const initial = createInitialEditState(
         action.assetId,
@@ -43,7 +47,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         action.width,
         action.height,
       );
-      return { history: { past: [], present: initial, future: [] }, isLoading: false, error: null };
+      return { history: { past: [], present: initial, future: [] }, isLoading: true, error: null };
     }
     case 'EDIT': {
       const next = applyEditAction(state.history.present, action.action);
