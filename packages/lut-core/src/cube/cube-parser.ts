@@ -2,7 +2,6 @@ import {
   DEFAULT_DOMAIN_MAX,
   DEFAULT_DOMAIN_MIN,
   LutMetadata,
-  LutTable,
   ParseResult,
   createLutTable,
   err,

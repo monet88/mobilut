@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-env node */
 /**
  * Fixes react-native-screens fabric spec files for React Native 0.76 codegen compatibility.
  * The specs use `CodegenTypes as CT` namespace from 'react-native' which is a Flow export
@@ -49,5 +50,5 @@ for (const file of files) {
 }
 
 if (fixed > 0) {
-  console.log(`[fix-rn-screens-codegen] Fixed ${fixed} fabric spec file(s).`);
+  process.stdout.write(`[fix-rn-screens-codegen] Fixed ${fixed} fabric spec file(s).\n`);
 }

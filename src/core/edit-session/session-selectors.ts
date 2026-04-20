@@ -23,7 +23,7 @@ export function selectHasAnyLutSelection(state: EditState): boolean {
 }
 
 export function selectAdjustmentCount(state: EditState): number {
-  const pairs: ReadonlyArray<readonly [number, number]> = [
+  const pairs: readonly (readonly [number, number])[] = [
     [state.adjustments.intensity, DEFAULT_ADJUSTMENTS.intensity],
     [state.adjustments.temperature, DEFAULT_ADJUSTMENTS.temperature],
     [state.adjustments.brightness, DEFAULT_ADJUSTMENTS.brightness],

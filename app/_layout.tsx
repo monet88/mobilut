@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemeProvider } from '@theme/use-theme';
 
@@ -33,16 +34,18 @@ export class ErrorBoundary extends React.Component<
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <Stack>
-        <Stack.Screen name="index" options={{ title: 'LUT App' }} />
-        <Stack.Screen name="editor/[assetId]" options={{ title: 'Editor', headerShown: false }} />
-        <Stack.Screen name="import/index" options={{ title: 'Import' }} />
-        <Stack.Screen name="export/index" options={{ title: 'Export' }} />
-        <Stack.Screen name="presets/index" options={{ title: 'Presets' }} />
-        <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
-      </Stack>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <Stack>
+          <Stack.Screen name="index" options={{ title: 'LUT App' }} />
+          <Stack.Screen name="editor/[assetId]" options={{ title: 'Editor', headerShown: false }} />
+          <Stack.Screen name="import/index" options={{ title: 'Import' }} />
+          <Stack.Screen name="export/index" options={{ title: 'Export' }} />
+          <Stack.Screen name="presets/index" options={{ title: 'Presets' }} />
+          <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
+        </Stack>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

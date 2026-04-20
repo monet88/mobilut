@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import type { ImageAsset } from '@core/image-pipeline/image-asset';
-import { ErrorBanner, LoadingOverlay } from '@ui/feedback';
+import { ErrorBanner } from '@ui/feedback';
 import { Button, Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
 
@@ -51,8 +51,6 @@ export function ImportImageScreen({ onImageSelected }: ImportImageScreenProps): 
           loading={isLoading}
         />
       </View>
-
-      <LoadingOverlay visible={isLoading} message="Importing photo…" />
     </View>
   );
 }
