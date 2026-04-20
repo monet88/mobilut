@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { getPreferences, setPreference, type AppPreferences } from '@services/storage';
 import { Button, Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
-import { initI18n } from '@i18n';
 
 const EXPORT_QUALITY_OPTIONS = [
   { value: 'high', label: 'High' },
@@ -20,7 +19,6 @@ export function SettingsScreen(): React.JSX.Element {
 
   React.useEffect(() => {
     let isMounted = true;
-    initI18n('en');
 
     void getPreferences()
       .then((storedPreferences) => {

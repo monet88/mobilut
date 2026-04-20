@@ -31,7 +31,9 @@ describe('SettingsScreen', () => {
       expect(screen.getByText('settings.exportQuality')).toBeTruthy();
     });
 
+    expect(screen.queryByText('settings.language')).toBeNull();
     expect(screen.queryByText('English')).toBeNull();
     expect(screen.queryByText('Tiếng Việt')).toBeNull();
+    expect(screen.getByText('settings.watermark')).toBeTruthy();
   });
 });

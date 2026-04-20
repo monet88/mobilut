@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { initI18n } from '@i18n';
 import { ThemeProvider } from '@theme/use-theme';
 
 interface ErrorBoundaryState {
@@ -33,6 +34,10 @@ export class ErrorBoundary extends React.Component<
 }
 
 export default function RootLayout() {
+  React.useEffect(() => {
+    initI18n('en');
+  }, []);
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
