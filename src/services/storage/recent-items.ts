@@ -6,17 +6,13 @@ const RECENT_ITEMS_KEY = '@lut-app/recentItems';
 const MAX_RECENT_ITEMS = 20;
 
 export async function getRecentItems(): Promise<ImageAsset[]> {
-  try {
-    const json = await AsyncStorage.getItem(RECENT_ITEMS_KEY);
+  const json = await AsyncStorage.getItem(RECENT_ITEMS_KEY);
 
-    if (!json) {
-      return [];
-    }
-
-    return JSON.parse(json) as ImageAsset[];
-  } catch {
+  if (!json) {
     return [];
   }
+
+  return JSON.parse(json) as ImageAsset[];
 }
 
 export async function addRecentItem(asset: ImageAsset): Promise<void> {
