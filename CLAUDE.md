@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Cross-platform mobile photo grading app for Vietnamese creators. React Native + Expo Router + `@shopify/react-native-skia`. Local-first, no backend in v1.
+Cross-platform mobile photo grading app for creators. React Native + Expo Router + `@shopify/react-native-skia`. Local-first, no backend in v1. Current product direction keeps the v1 UI English-only while preserving i18n-ready architecture for future Vietnamese support.
 
 ## Monorepo structure
 
@@ -55,7 +55,8 @@ Critical failures: malformed `.cube`, unsupported LUT size, invalid HaldCLUT PNG
 </important>
 
 <important if="you are deciding what to implement or questioning feature scope">
-- RAW decode/edit, cloud sync, user accounts, live camera preview, batch processing — all deferred
+- RAW decode/edit, cloud sync, user accounts, live camera preview — all deferred
+- Batch processing is planned for a later milestone, not part of the initial trusted single-photo loop
 - All features must work offline
 </important>
 
