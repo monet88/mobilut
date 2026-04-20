@@ -14,6 +14,10 @@ export async function writeFile(uri: string, content: string): Promise<void> {
   await FileSystem.writeAsStringAsync(uri, content);
 }
 
+export async function ensureDirectory(uri: string): Promise<void> {
+  await FileSystem.makeDirectoryAsync(uri, { intermediates: true });
+}
+
 export async function deleteFile(uri: string): Promise<void> {
   await FileSystem.deleteAsync(uri, { idempotent: true });
 }
