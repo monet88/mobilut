@@ -29,6 +29,12 @@ export function AdjustmentPanel({
   adjustments,
   onChangeAdjustments,
 }: AdjustmentPanelProps): React.JSX.Element {
+  const [draftAdjustments, setDraftAdjustments] = React.useState(adjustments);
+
+  React.useEffect(() => {
+    setDraftAdjustments(adjustments);
+  }, [adjustments]);
+
   return (
     <View style={styles.container}>
       <Text variant="label">Adjustments</Text>
@@ -37,11 +43,14 @@ export function AdjustmentPanel({
           <Slider
             key={control.key}
             label={control.label}
-            value={adjustments[control.key]}
+            value={draftAdjustments[control.key]}
             minimumValue={control.minimumValue}
             maximumValue={control.maximumValue}
             step={control.step}
-            onValueChange={(value) => onChangeAdjustments({ [control.key]: value })}
+            onValueChange={(value) =>
+              setDraftAdjustments((current) => ({ ...current, [control.key]: value }))
+            }
+            onSlidingComplete={(value) => onChangeAdjustments({ [control.key]: value })}
           />
         ))}
       </View>

@@ -3,19 +3,19 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { PreviewCanvas } from '@adapters/skia/preview-canvas';
-import type { AdjustmentParams } from '@core/edit-session/edit-state';
 import { ExportImageScreen } from '@features/export-image';
-import { FramingPanel } from '@features/framing-toolkit';
-import { PresetBrowser, usePresetBrowser } from '@features/preset-browser';
 import { BottomSheet, SafeAreaView } from '@ui/layout';
 import { Button, IconButton, Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
+import {
+  buildPreviewRequest,
+  renderPreview,
+  type PreviewRenderResult,
+} from '@services/image/preview-render.service';
 
-import { AdjustmentPanel } from './components/adjustment-panel';
 import { CropOverlay } from './components/crop-overlay';
 import { RotateControls } from './components/rotate-controls';
 import { ModificationLogSheet } from './modification-log-sheet';
-import { ToolSheet, type EditorSheetKey } from './tool-sheet';
 import { useEditorSession } from './use-editor-session';
 
 interface EditorScreenProps {
@@ -25,7 +25,7 @@ interface EditorScreenProps {
   readonly assetHeight?: number;
 }
 
-type ActiveSheet = EditorSheetKey | 'tools' | null;
+type ActiveSheet = 'crop' | 'log' | 'export' | null;
 
 export function EditorScreen({
   assetId,
@@ -37,42 +37,40 @@ export function EditorScreen({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { editState, history, isLoading, isSavingDraft, canUndo, canRedo, undo, redo, dispatch } =
     useEditorSession(assetId, assetUri, assetWidth, assetHeight);
-  const {
-    presets,
-    categories,
-    selectedCategory,
-    setSelectedCategory,
-    selectedPresetId,
-    setSelectedPresetId,
-    isLoading: isLoadingPresets,
-  } = usePresetBrowser();
   const [activeSheet, setActiveSheet] = React.useState<ActiveSheet>(null);
+  const [previewResult, setPreviewResult] = React.useState<PreviewRenderResult | null>(null);
 
   const previewWidth = Math.max(220, Math.min(windowWidth - spacing.lg * 2, 420));
   const previewHeight = Math.max(
     220,
-    Math.min(windowHeight * 0.52, Math.round(previewWidth / getAspectRatio(editState))),
+    Math.min(windowHeight * 0.52, Math.round(previewWidth / getAspectRatio(previewResult, editState))),
   );
   const hasAsset = editState.assetUri.length > 0;
 
   React.useEffect(() => {
-    setSelectedPresetId(editState.selectedPresetId);
-  }, [editState.selectedPresetId, setSelectedPresetId]);
+    if (!hasAsset || isLoading) {
+      setPreviewResult(null);
+      return;
+    }
 
-  const handleSelectPreset = React.useCallback(
-    (presetId: string) => {
-      setSelectedPresetId(presetId);
-      dispatch({ type: 'SELECT_PRESET', presetId });
-    },
-    [dispatch, setSelectedPresetId],
-  );
+    let cancelled = false;
 
-  const handleAdjustmentChange = React.useCallback(
-    (adjustments: Partial<AdjustmentParams>) => {
-      dispatch({ type: 'SET_ADJUSTMENTS', adjustments });
-    },
-    [dispatch],
-  );
+    void renderPreview(buildPreviewRequest(editState))
+      .then((result) => {
+        if (!cancelled) {
+          setPreviewResult(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewResult(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editState, hasAsset, isLoading]);
 
   const openSheet = React.useCallback((sheet: ActiveSheet) => {
     setActiveSheet(sheet);
@@ -80,10 +78,6 @@ export function EditorScreen({
 
   const closeSheet = React.useCallback(() => {
     setActiveSheet(null);
-  }, []);
-
-  const handleSelectTool = React.useCallback((sheet: EditorSheetKey) => {
-    setActiveSheet(sheet);
   }, []);
 
   return (
@@ -102,7 +96,11 @@ export function EditorScreen({
       <View style={styles.previewSection}>
         <View style={styles.previewCard}>
           {hasAsset && !isLoading ? (
-            <PreviewCanvas imageUri={editState.assetUri} width={previewWidth} height={previewHeight} />
+            <PreviewCanvas
+              imageUri={previewResult?.uri ?? editState.assetUri}
+              width={previewWidth}
+              height={previewHeight}
+            />
           ) : (
             <View style={[styles.placeholder, { width: previewWidth, height: previewHeight }]}>
               <Text variant="body" style={styles.placeholderText}>
@@ -114,20 +112,11 @@ export function EditorScreen({
       </View>
 
       <View style={styles.toolbar}>
-        <Button label="Tools" onPress={() => openSheet('tools')} variant="secondary" />
         <Button label="Crop" onPress={() => openSheet('crop')} variant="secondary" />
-        <Button label="Adjust" onPress={() => openSheet('adjust')} variant="secondary" />
-        <Button label="LUT" onPress={() => openSheet('lut')} variant="secondary" />
         <Button label="Log" onPress={() => openSheet('log')} variant="secondary" />
         <Button label="Undo" onPress={undo} disabled={!canUndo} variant="secondary" />
         <Button label="Redo" onPress={redo} disabled={!canRedo} variant="secondary" />
       </View>
-
-      <ToolSheet
-        visible={activeSheet === 'tools'}
-        onClose={closeSheet}
-        onSelectTool={handleSelectTool}
-      />
 
       <BottomSheet visible={activeSheet === 'crop'} title="Crop" onClose={closeSheet}>
         <View style={styles.sheetContent}>
@@ -143,34 +132,11 @@ export function EditorScreen({
         </View>
       </BottomSheet>
 
-      <BottomSheet visible={activeSheet === 'adjust'} title="Adjust" onClose={closeSheet}>
-        <AdjustmentPanel
-          adjustments={editState.adjustments}
-          onChangeAdjustments={handleAdjustmentChange}
-        />
-      </BottomSheet>
-
-      <BottomSheet visible={activeSheet === 'lut'} title="LUT" onClose={closeSheet}>
-        <PresetBrowser
-          presets={presets}
-          categories={categories}
-          selectedCategory={selectedCategory}
-          selectedPresetId={selectedPresetId}
-          isLoading={isLoadingPresets}
-          onSelectCategory={setSelectedCategory}
-          onSelectPreset={handleSelectPreset}
-        />
-      </BottomSheet>
-
       <ModificationLogSheet
         visible={activeSheet === 'log'}
         states={[...history.past, history.present]}
         onClose={closeSheet}
       />
-
-      <BottomSheet visible={activeSheet === 'frame'} title="Frame" onClose={closeSheet}>
-        <FramingPanel framing={editState.framing} dispatch={dispatch} />
-      </BottomSheet>
 
       <BottomSheet visible={activeSheet === 'export'} title="Export" onClose={closeSheet}>
         <ExportImageScreen editState={editState} />
@@ -179,7 +145,14 @@ export function EditorScreen({
   );
 }
 
-function getAspectRatio(editState: { assetWidth: number; assetHeight: number }): number {
+function getAspectRatio(
+  previewResult: PreviewRenderResult | null,
+  editState: { assetWidth: number; assetHeight: number },
+): number {
+  if (previewResult && previewResult.height > 0) {
+    return previewResult.width / previewResult.height;
+  }
+
   if (editState.assetHeight <= 0) {
     return 1;
   }

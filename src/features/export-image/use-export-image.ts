@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 import type { EditState } from '@core/edit-session/edit-state';
-import type { ExportRequest, Transform } from '@core/image-pipeline';
+import type { ExportFormat, ExportRequest, Transform } from '@core/image-pipeline';
 import { renderExport } from '@services/image/export-render.service';
 import { saveImageToGallery } from '@adapters/expo/media-library';
 import { shareFile } from '@adapters/expo/sharing';
@@ -11,9 +11,11 @@ export interface UseExportImageResult {
   readonly error: Error | null;
   readonly exportToGallery: (
     editState: EditState,
+    format: Extract<ExportFormat, 'jpeg' | 'png'>,
   ) => Promise<Awaited<ReturnType<typeof renderExport>> | null>;
   readonly exportAndShare: (
     editState: EditState,
+    format: Extract<ExportFormat, 'jpeg' | 'png'>,
   ) => Promise<Awaited<ReturnType<typeof renderExport>> | null>;
 }
 
@@ -21,47 +23,56 @@ export function useExportImage(): UseExportImageResult {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const exportToGallery = useCallback(async (editState: EditState) => {
-    setIsExporting(true);
-    setError(null);
+  const exportToGallery = useCallback(
+    async (editState: EditState, format: Extract<ExportFormat, 'jpeg' | 'png'>) => {
+      setIsExporting(true);
+      setError(null);
 
-    try {
-      const request = buildExportRequest(editState);
-      const result = await renderExport(request);
-      await saveImageToGallery(result.uri);
-      return result;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-      return null;
-    } finally {
-      setIsExporting(false);
-    }
-  }, []);
+      try {
+        const request = buildExportRequest(editState, format);
+        const result = await renderExport(request);
+        await saveImageToGallery(result.uri);
+        return result;
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+        return null;
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [],
+  );
 
-  const exportAndShare = useCallback(async (editState: EditState) => {
-    setIsExporting(true);
-    setError(null);
+  const exportAndShare = useCallback(
+    async (editState: EditState, format: Extract<ExportFormat, 'jpeg' | 'png'>) => {
+      setIsExporting(true);
+      setError(null);
 
-    try {
-      const request = buildExportRequest(editState);
-      const result = await renderExport(request);
-      await shareFile(result.uri, 'image/jpeg');
-      return result;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-      return null;
-    } finally {
-      setIsExporting(false);
-    }
-  }, []);
+      try {
+        const request = buildExportRequest(editState, format);
+        const result = await renderExport(request);
+        await shareFile(result.uri, result.format === 'png' ? 'image/png' : 'image/jpeg');
+        return result;
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+        return null;
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [],
+  );
 
   return { isExporting, error, exportToGallery, exportAndShare };
 }
 
-function buildExportRequest(state: EditState): ExportRequest & {
+function buildExportRequest(
+  state: EditState,
+  format: Extract<ExportFormat, 'jpeg' | 'png'>,
+): ExportRequest & {
   readonly rotation: 0 | 90 | 180 | 270;
   readonly crop: EditState['crop'];
-  readonly outputFormat: 'jpeg';
+  readonly outputFormat: Extract<ExportFormat, 'jpeg' | 'png'>;
 } {
   const transforms: Transform[] = [];
 
@@ -95,6 +106,8 @@ function buildExportRequest(state: EditState): ExportRequest & {
     transforms.push({ type: 'watermark', params: state.watermark });
   }
 
+  const transformedDimensions = getTransformedDimensions(state);
+
   return {
     asset: {
       id: state.assetId,
@@ -105,17 +118,32 @@ function buildExportRequest(state: EditState): ExportRequest & {
       fileSize: null,
     },
     transforms,
-    format: 'jpeg',
+    format,
     quality: 0.95,
-    targetWidth: state.crop
-      ? Math.max(1, Math.round(state.assetWidth * state.crop.width))
-      : state.assetWidth,
-    targetHeight: state.crop
-      ? Math.max(1, Math.round(state.assetHeight * state.crop.height))
-      : state.assetHeight,
+    targetWidth: transformedDimensions.width,
+    targetHeight: transformedDimensions.height,
     includeMetadata: true,
     rotation: state.rotation,
     crop: state.crop,
-    outputFormat: 'jpeg',
+    outputFormat: format,
   };
+}
+
+function getTransformedDimensions(state: EditState): {
+  readonly width: number;
+  readonly height: number;
+} {
+  let width = state.assetWidth;
+  let height = state.assetHeight;
+
+  if (state.rotation === 90 || state.rotation === 270) {
+    [width, height] = [height, width];
+  }
+
+  if (state.crop) {
+    width = Math.max(1, Math.round(width * state.crop.width));
+    height = Math.max(1, Math.round(height * state.crop.height));
+  }
+
+  return { width, height };
 }

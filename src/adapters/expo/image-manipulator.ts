@@ -4,7 +4,10 @@ export interface ResizeOptions {
   readonly maxWidth: number;
   readonly maxHeight: number;
   readonly quality?: number;
+  readonly format?: ImageFormat;
 }
+
+export type ImageFormat = 'jpeg' | 'png';
 
 function getCompressValue(quality: number | undefined): number {
   if (typeof quality !== 'number' || Number.isNaN(quality)) {
@@ -12,6 +15,12 @@ function getCompressValue(quality: number | undefined): number {
   }
 
   return Math.min(1, Math.max(0, quality));
+}
+
+function getSaveFormat(format: ImageFormat | undefined): ImageManipulator.SaveFormat {
+  return format === 'png'
+    ? ImageManipulator.SaveFormat.PNG
+    : ImageManipulator.SaveFormat.JPEG;
 }
 
 export async function resizeImage(uri: string, options: ResizeOptions): Promise<string> {
@@ -27,14 +36,27 @@ export async function resizeImage(uri: string, options: ResizeOptions): Promise<
     ],
     {
       compress: getCompressValue(options.quality),
+      format: getSaveFormat(options.format),
     },
   );
 
   return result.uri;
 }
 
-export async function rotateImage(uri: string, degrees: 90 | 180 | 270): Promise<string> {
-  const result = await ImageManipulator.manipulateAsync(uri, [{ rotate: degrees }]);
+interface SaveImageOptions {
+  readonly quality?: number;
+  readonly format?: ImageFormat;
+}
+
+export async function rotateImage(
+  uri: string,
+  degrees: 90 | 180 | 270,
+  options: SaveImageOptions = {},
+): Promise<string> {
+  const result = await ImageManipulator.manipulateAsync(uri, [{ rotate: degrees }], {
+    compress: getCompressValue(options.quality),
+    format: getSaveFormat(options.format),
+  });
 
   return result.uri;
 }
@@ -45,17 +67,34 @@ export async function cropImage(
   originY: number,
   width: number,
   height: number,
+  options: SaveImageOptions = {},
 ): Promise<string> {
-  const result = await ImageManipulator.manipulateAsync(uri, [
-    {
-      crop: {
-        originX,
-        originY,
-        width,
-        height,
+  const result = await ImageManipulator.manipulateAsync(
+    uri,
+    [
+      {
+        crop: {
+          originX,
+          originY,
+          width,
+          height,
+        },
       },
+    ],
+    {
+      compress: getCompressValue(options.quality),
+      format: getSaveFormat(options.format),
     },
-  ]);
+  );
+
+  return result.uri;
+}
+
+export async function saveImage(uri: string, options: SaveImageOptions = {}): Promise<string> {
+  const result = await ImageManipulator.manipulateAsync(uri, [], {
+    compress: getCompressValue(options.quality),
+    format: getSaveFormat(options.format),
+  });
 
   return result.uri;
 }

@@ -1,4 +1,4 @@
-import { cropImage, resizeImage, rotateImage } from '@adapters/expo/image-manipulator';
+import { cropImage, resizeImage, rotateImage, saveImage } from '@adapters/expo/image-manipulator';
 import { ExportErrors } from '@core/errors/export-errors';
 import type { CropParams } from '@core/edit-session/edit-state';
 import type { ExportRequest, Transform } from '@core/image-pipeline';
@@ -35,6 +35,8 @@ export async function renderExport(request: ExportRequest): Promise<ExportRender
   let currentHeight = request.asset.height;
   const rotation = getRotation(extendedRequest);
   const crop = getCrop(extendedRequest);
+  const outputFormat = getOutputFormat(extendedRequest);
+  let finalizedOutput = false;
 
   if (rotation !== 0) {
     currentUri = await rotateImage(currentUri, rotation);
@@ -61,17 +63,26 @@ export async function renderExport(request: ExportRequest): Promise<ExportRender
         maxWidth: request.targetWidth,
         maxHeight: request.targetHeight,
         quality: request.quality,
+        format: outputFormat,
       });
       currentWidth = request.targetWidth;
       currentHeight = request.targetHeight;
+      finalizedOutput = true;
     }
+  }
+
+  if (!finalizedOutput) {
+    currentUri = await saveImage(currentUri, {
+      quality: request.quality,
+      format: outputFormat,
+    });
   }
 
   return {
     uri: currentUri,
     width: currentWidth,
     height: currentHeight,
-    format: getOutputFormat(extendedRequest),
+    format: outputFormat,
   };
 }
 

@@ -129,21 +129,15 @@ describe('EditorScreen', () => {
     mockUseEditorSession.mockReturnValue(createSessionState());
   });
 
-  it('renders the new toolbar and opens the tools sheet', async () => {
+  it('only exposes tool surfaces that have a truthful preview/export path today', async () => {
     const screen = renderEditorScreen();
 
-    expect(screen.getByText('Tools')).toBeTruthy();
     expect(screen.getByText('Crop')).toBeTruthy();
-    expect(screen.getByText('Adjust')).toBeTruthy();
-    expect(screen.getByText('LUT')).toBeTruthy();
     expect(screen.getByText('Log')).toBeTruthy();
     expect(screen.getByText('Export')).toBeTruthy();
-
-    fireEvent.press(screen.getByText('Tools'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Border')).toBeTruthy();
-    });
+    expect(screen.queryByText('Tools')).toBeNull();
+    expect(screen.queryByText('Adjust')).toBeNull();
+    expect(screen.queryByText('LUT')).toBeNull();
   });
 
   it('keeps rotation controls reachable from the crop sheet', async () => {
