@@ -14,6 +14,7 @@ node_modules
 .gitnexus
 .omx/
 .omc/
+.agents/
 
 # Beads / Dolt files (added by bd init)
 .dolt/
