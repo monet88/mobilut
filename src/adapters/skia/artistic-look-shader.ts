@@ -22,9 +22,10 @@ half4 main(float2 coord) {
   // Contrast adjustment
   color.rgb = (color.rgb - 0.5) * (1.0 + contrast * intensity) + 0.5;
 
-  // Vignette
+  // Vignette (aspect-ratio corrected)
   float2 uv = coord / resolution;
   float2 center = uv - 0.5;
+  center.x *= resolution.x / resolution.y;
   float dist = length(center);
   float vig = 1.0 - smoothstep(0.3, 0.8, dist) * vignette * intensity;
   color.rgb *= vig;
@@ -49,12 +50,13 @@ export function buildArtisticLookUniforms(
 ): Record<string, number | number[]> {
   const m = style.colorMatrix;
   return {
-    // Column-major 4×4 (rows 0..3 of the 4×5 matrix, dropping the alpha row)
+    // Column-major 4x4: each column is [R_coeff, G_coeff, B_coeff, A_coeff]
+    // from the 4x5 color matrix rows
     colorMatrix: [
-      m[0], m[1],  m[2],  m[3],
-      m[5], m[6],  m[7],  m[8],
-      m[10], m[11], m[12], m[13],
-      m[15], m[16], m[17], m[18],
+      m[0],  m[5],  m[10], m[15],  // column 0: how much input R contributes
+      m[1],  m[6],  m[11], m[16],  // column 1: how much input G contributes
+      m[2],  m[7],  m[12], m[17],  // column 2: how much input B contributes
+      m[3],  m[8],  m[13], m[18],  // column 3: how much input A contributes
     ],
     colorOffset: [m[4], m[9], m[14], m[19]],
     intensity,

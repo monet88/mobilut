@@ -2,7 +2,9 @@ import type { EditState } from '@core/edit-session/edit-state';
 import { DEFAULT_ADJUSTMENTS } from '@core/edit-session/edit-state';
 import type { PreviewRequest, Transform } from '@core/image-pipeline';
 import { MAX_PREVIEW_DIMENSION } from '@core/image-pipeline/pipeline-constraints';
-import { hasProClarityApplied } from '@core/stylistic/pro-clarity-model';
+import { isArtisticLookActive } from '@core/render/artistic-look-transform';
+import { isSmartFilterActive } from '@core/render/smart-filter-transform';
+import { isProClarityActive } from '@core/render/pro-clarity-transform';
 import { cropImage, resizeImage, rotateImage } from '@adapters/expo/image-manipulator';
 
 export interface PreviewRenderResult {
@@ -109,16 +111,16 @@ export function buildPreviewRequest(state: EditState): PreviewRequest {
     transforms.push({ type: 'watermark', params: state.watermark });
   }
 
-  if (state.artisticLook) {
-    transforms.push({ type: 'artistic-look', params: state.artisticLook });
+  if (isArtisticLookActive(state.artisticLook)) {
+    transforms.push({ type: 'artistic-look', params: state.artisticLook! });
   }
 
-  if (state.smartFilter?.enabled) {
-    transforms.push({ type: 'smart-filter', params: state.smartFilter });
+  if (isSmartFilterActive(state.smartFilter)) {
+    transforms.push({ type: 'smart-filter', params: state.smartFilter! });
   }
 
-  if (state.proClarity && hasProClarityApplied(state.proClarity)) {
-    transforms.push({ type: 'pro-clarity', params: state.proClarity });
+  if (isProClarityActive(state.proClarity)) {
+    transforms.push({ type: 'pro-clarity', params: state.proClarity! });
   }
 
   const request: ExtendedPreviewRequest = {

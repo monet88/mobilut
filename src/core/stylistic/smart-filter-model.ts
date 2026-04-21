@@ -21,6 +21,11 @@ export interface SmartFilterCorrection {
   readonly shadowsAdjust: number;
 }
 
+// TODO(phase-2): computeSmartFilterCorrection is defined but never called.
+// Need to implement ImageAnalysis producer (pixel sampling from Skia canvas
+// or expo-image-manipulator) and wire it into the preview/export pipeline.
+// Until then, Smart Filter stores enabled+strength but has no rendering effect.
+
 export function computeSmartFilterCorrection(
   analysis: ImageAnalysis,
   strength: number,

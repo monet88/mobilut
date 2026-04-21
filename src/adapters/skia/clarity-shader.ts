@@ -13,12 +13,12 @@ uniform float2 resolution;
 
 half4 main(float2 coord) {
   half4 color = image.eval(coord);
-  float2 texel = 1.0 / resolution;
 
-  half4 left = image.eval(coord - float2(texel.x, 0));
-  half4 right = image.eval(coord + float2(texel.x, 0));
-  half4 top = image.eval(coord - float2(0, texel.y));
-  half4 bottom = image.eval(coord + float2(0, texel.y));
+  // Sample 4 neighbors at 1-pixel offsets (coord is in pixel space)
+  half4 left = image.eval(coord - float2(1.0, 0));
+  half4 right = image.eval(coord + float2(1.0, 0));
+  half4 top = image.eval(coord - float2(0, 1.0));
+  half4 bottom = image.eval(coord + float2(0, 1.0));
 
   half4 laplacian = 4.0 * color - left - right - top - bottom;
   color.rgb += laplacian.rgb * sharpness * 0.5;
@@ -30,9 +30,12 @@ half4 main(float2 coord) {
   float edge = length(laplacian.rgb);
   color.rgb += diff.rgb * structure * edge * 0.2;
 
+  // Micro-contrast: scale luminance proportionally to preserve color
   float luma = dot(color.rgb, half3(0.299, 0.587, 0.114));
   float localLuma = dot(avg.rgb, half3(0.299, 0.587, 0.114));
-  color.rgb += (luma - localLuma) * microContrast * 0.4;
+  float lumaDelta = (luma - localLuma) * microContrast * 0.4;
+  float scale = luma > 0.001 ? (luma + lumaDelta) / luma : 1.0;
+  color.rgb *= scale;
 
   return saturate(color);
 }

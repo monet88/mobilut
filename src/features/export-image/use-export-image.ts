@@ -2,6 +2,9 @@ import { useCallback, useState } from 'react';
 
 import type { EditState } from '@core/edit-session/edit-state';
 import type { ExportFormat, ExportRequest, Transform } from '@core/image-pipeline';
+import { isArtisticLookActive } from '@core/render/artistic-look-transform';
+import { isSmartFilterActive } from '@core/render/smart-filter-transform';
+import { isProClarityActive } from '@core/render/pro-clarity-transform';
 import { renderExport } from '@services/image/export-render.service';
 import { saveImageToGallery } from '@adapters/expo/media-library';
 import { shareFile } from '@adapters/expo/sharing';
@@ -104,6 +107,18 @@ function buildExportRequest(
 
   if (state.watermark) {
     transforms.push({ type: 'watermark', params: state.watermark });
+  }
+
+  if (isArtisticLookActive(state.artisticLook)) {
+    transforms.push({ type: 'artistic-look', params: state.artisticLook! });
+  }
+
+  if (isSmartFilterActive(state.smartFilter)) {
+    transforms.push({ type: 'smart-filter', params: state.smartFilter! });
+  }
+
+  if (isProClarityActive(state.proClarity)) {
+    transforms.push({ type: 'pro-clarity', params: state.proClarity! });
   }
 
   const transformedDimensions = getTransformedDimensions(state);
