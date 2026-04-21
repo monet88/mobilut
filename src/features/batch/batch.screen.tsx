@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import type { LibraryPhotoAsset } from '@adapters/expo/media-library';
 import { SafeAreaView } from '@ui/layout';
@@ -13,8 +12,11 @@ import { BatchPhotoPicker } from './batch-photo-picker';
 import { useBatchSession } from './use-batch-session';
 import { colors, spacing } from '@theme/tokens';
 
-export function BatchScreen(): React.JSX.Element {
-  const router = useRouter();
+interface BatchScreenProps {
+  readonly onClose: () => void;
+}
+
+export function BatchScreen({ onClose }: BatchScreenProps): React.JSX.Element {
   const {
     session,
     selectedPhoto,
@@ -42,8 +44,8 @@ export function BatchScreen(): React.JSX.Element {
   } = usePresetBrowser();
 
   const handleBack = useCallback(() => {
-    router.back();
-  }, [router]);
+    onClose();
+  }, [onClose]);
 
   const handleExport = useCallback(() => {
     void startExport('jpeg');

@@ -1,5 +1,9 @@
+import { useRouter } from 'expo-router';
+
 import { BatchScreen } from '@features/batch';
 
 export default function Batch() {
-  return <BatchScreen />;
+  const router = useRouter();
+
+  return <BatchScreen onClose={() => router.back()} />;
 }

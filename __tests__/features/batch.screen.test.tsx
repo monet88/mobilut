@@ -4,7 +4,7 @@
  * exposes the expected UI elements.
  */
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 const mockBack = jest.fn();
 
@@ -74,16 +74,26 @@ describe('BatchScreen', () => {
   });
 
   it('renders without crashing', () => {
-    expect(() => render(<BatchScreen />)).not.toThrow();
+    expect(() => render(<BatchScreen onClose={jest.fn()} />)).not.toThrow();
   });
 
   it('shows BATCH PROCESS title', () => {
-    const { getByText } = render(<BatchScreen />);
+    const { getByText } = render(<BatchScreen onClose={jest.fn()} />);
     expect(getByText('BATCH PROCESS')).toBeTruthy();
   });
 
   it('shows EXPORT button', () => {
-    const { getByText } = render(<BatchScreen />);
+    const { getByText } = render(<BatchScreen onClose={jest.fn()} />);
     expect(getByText('EXPORT')).toBeTruthy();
+  });
+
+  it('delegates back navigation to the route layer', () => {
+    const onClose = jest.fn();
+    const { getByLabelText } = render(<BatchScreen onClose={onClose} />);
+
+    fireEvent.press(getByLabelText('Go back'));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockBack).not.toHaveBeenCalled();
   });
 });

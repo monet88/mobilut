@@ -138,4 +138,41 @@ describe('batch-workspace', () => {
       `Cannot add more than ${MAX_BATCH_PHOTOS} photos to batch`,
     );
   });
+
+  it('ignores duplicate photo IDs when merging new photos into a workspace', async () => {
+    mockGenerateThumbnail.mockResolvedValue('thumb://photo-2');
+
+    const workspace = {
+      id: 'ws-1',
+      photos: [
+        {
+          id: 'photo-1',
+          uri: 'file:///photo-1.jpg',
+          width: 100,
+          height: 100,
+          thumbnailUri: 'thumb://1',
+          status: 'pending',
+          error: null,
+        },
+      ],
+      selectedPhotoId: 'photo-1',
+      appliedPresetId: null,
+      appliedIntensity: 1,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+
+    await expect(
+      addPhotosToWorkspace(workspace, [selection('photo-1'), selection('photo-2'), selection('photo-2')]),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        photos: [
+          expect.objectContaining({ id: 'photo-1' }),
+          expect.objectContaining({ id: 'photo-2', thumbnailUri: 'thumb://photo-2' }),
+        ],
+      }),
+    );
+    expect(mockGenerateThumbnail).toHaveBeenCalledTimes(1);
+    expect(mockGenerateThumbnail).toHaveBeenCalledWith('photo-2', 'file:///photo-2.jpg');
+  });
 });

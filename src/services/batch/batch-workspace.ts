@@ -73,13 +73,28 @@ export async function addPhotosToWorkspace(
   workspace: BatchWorkspace,
   selections: readonly PhotoSelection[],
 ): Promise<BatchWorkspace> {
-  const totalCount = workspace.photos.length + selections.length;
+  const existingPhotoIds = new Set(workspace.photos.map((photo) => photo.id));
+  const incomingPhotoIds = new Set<string>();
+  const uniqueSelections = selections.filter((selection) => {
+    if (existingPhotoIds.has(selection.id) || incomingPhotoIds.has(selection.id)) {
+      return false;
+    }
+
+    incomingPhotoIds.add(selection.id);
+    return true;
+  });
+
+  const totalCount = workspace.photos.length + uniqueSelections.length;
   if (totalCount > MAX_BATCH_PHOTOS) {
     throw new Error(`Cannot add more than ${MAX_BATCH_PHOTOS} photos to batch`);
   }
 
+  if (uniqueSelections.length === 0) {
+    return workspace;
+  }
+
   const newPhotos = await mapSelectionsWithConcurrency(
-    selections,
+    uniqueSelections,
     THUMBNAIL_CONCURRENCY,
     createBatchPhoto,
   );
