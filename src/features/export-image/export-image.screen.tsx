@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { EditState } from '@core/edit-session/edit-state';
+import type { ExportFormat } from '@core/image-pipeline';
 import { ErrorBanner, LoadingOverlay } from '@ui/feedback';
 import { Button, Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
@@ -12,23 +13,28 @@ export interface ExportImageScreenProps {
   readonly editState: EditState;
 }
 
+const FORMAT_OPTIONS: readonly Extract<ExportFormat, 'jpeg' | 'png'>[] = ['jpeg', 'png'];
+
 export function ExportImageScreen({ editState }: ExportImageScreenProps): React.JSX.Element {
   const { isExporting, error, exportToGallery, exportAndShare } = useExportImage();
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = React.useState<Extract<ExportFormat, 'jpeg' | 'png'>>(
+    'jpeg',
+  );
 
   const handleSave = async (): Promise<void> => {
-    const result = await exportToGallery(editState);
+    const result = await exportToGallery(editState, selectedFormat);
 
     if (result) {
-      setSuccessMessage('Saved export to your gallery.');
+      setSuccessMessage(`Saved ${result.format.toUpperCase()} export to your gallery.`);
     }
   };
 
   const handleShare = async (): Promise<void> => {
-    const result = await exportAndShare(editState);
+    const result = await exportAndShare(editState, selectedFormat);
 
     if (result) {
-      setSuccessMessage('Opened the share sheet for your export.');
+      setSuccessMessage(`Opened the share sheet for your ${result.format.toUpperCase()} export.`);
     }
   };
 
@@ -39,8 +45,31 @@ export function ExportImageScreen({ editState }: ExportImageScreenProps): React.
           Export Image
         </Text>
         <Text variant="body" style={styles.subtitle}>
-          Export the current edit as a full-resolution JPEG with crop and rotation applied.
+          Choose PNG or JPEG for the current crop and rotation export.
         </Text>
+
+        <View style={styles.formatRow}>
+          {FORMAT_OPTIONS.map((format) => {
+            const isSelected = selectedFormat === format;
+
+            return (
+              <Pressable
+                key={format}
+                accessibilityRole="button"
+                onPress={() => setSelectedFormat(format)}
+                style={[styles.formatChip, isSelected ? styles.formatChipSelected : null]}
+              >
+                <Text
+                  selectable={false}
+                  variant="label"
+                  color={isSelected ? colors.background : colors.primary}
+                >
+                  {format.toUpperCase()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         {error ? <ErrorBanner message={error.message} /> : null}
         {successMessage ? (
@@ -104,5 +133,22 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.sm,
+  },
+  formatRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  formatChip: {
+    minHeight: 40,
+    minWidth: 88,
+    borderRadius: 999,
+    borderCurve: 'continuous',
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  formatChipSelected: {
+    backgroundColor: colors.accent,
   },
 });

@@ -5,12 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { getPreferences, setPreference, type AppPreferences } from '@services/storage';
 import { Button, Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
-import { initI18n } from '@i18n';
-
-const LANGUAGE_OPTIONS = [
-  { value: 'vi', label: 'Tiếng Việt' },
-  { value: 'en', label: 'English' },
-] as const;
 
 const EXPORT_QUALITY_OPTIONS = [
   { value: 'high', label: 'High' },
@@ -30,7 +24,6 @@ export function SettingsScreen(): React.JSX.Element {
       .then((storedPreferences) => {
         if (isMounted) {
           setPreferences(storedPreferences);
-          initI18n(storedPreferences.language);
         }
       })
       .catch((err) => {
@@ -44,7 +37,7 @@ export function SettingsScreen(): React.JSX.Element {
     };
   }, []);
 
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const updatePreference = React.useCallback(
     async <K extends keyof AppPreferences>(key: K, value: AppPreferences[K]) => {
@@ -60,24 +53,19 @@ export function SettingsScreen(): React.JSX.Element {
               }
             : current,
         );
-
-        if (key === 'language') {
-          initI18n(value as AppPreferences['language']);
-          await i18n.changeLanguage(value as AppPreferences['language']);
-        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         setIsSaving(false);
       }
     },
-    [i18n],
+    [],
   );
 
   const currentPreferences =
     preferences ??
     ({
-      language: 'vi',
+      language: 'en',
       theme: 'system',
       exportQuality: 'high',
       showWatermark: false,
@@ -92,7 +80,7 @@ export function SettingsScreen(): React.JSX.Element {
       <View style={styles.section}>
         <Text variant="heading">{t('settings.title')}</Text>
         <Text variant="body" style={styles.subtitle}>
-          Local app preferences for language, export defaults, and watermark behavior.
+          Local app preferences for export defaults and watermark behavior.
         </Text>
       </View>
 
@@ -104,33 +92,6 @@ export function SettingsScreen(): React.JSX.Element {
           <Text variant="body">{error.message}</Text>
         </View>
       ) : null}
-
-      <View style={styles.sectionCard}>
-        <Text variant="label">{t('settings.language')}</Text>
-        <View style={styles.optionRow}>
-          {LANGUAGE_OPTIONS.map((option) => {
-            const isSelected = currentPreferences.language === option.value;
-
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="button"
-                disabled={isSaving}
-                onPress={() => updatePreference('language', option.value)}
-                style={[styles.optionChip, isSelected ? styles.optionChipSelected : null]}
-              >
-                <Text
-                  selectable={false}
-                  variant="label"
-                  color={isSelected ? colors.background : colors.primary}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
 
       <View style={styles.sectionCard}>
         <Text variant="label">{t('settings.exportQuality')}</Text>

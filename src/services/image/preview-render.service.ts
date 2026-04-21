@@ -2,6 +2,7 @@ import type { EditState } from '@core/edit-session/edit-state';
 import { DEFAULT_ADJUSTMENTS } from '@core/edit-session/edit-state';
 import type { PreviewRequest, Transform } from '@core/image-pipeline';
 import { MAX_PREVIEW_DIMENSION } from '@core/image-pipeline/pipeline-constraints';
+import { cropImage, resizeImage, rotateImage } from '@adapters/expo/image-manipulator';
 
 export interface PreviewRenderResult {
   readonly uri: string;
@@ -16,12 +17,57 @@ type ExtendedPreviewRequest = PreviewRequest & {
 export async function renderPreview(request: PreviewRequest): Promise<PreviewRenderResult> {
   const extendedRequest = request as ExtendedPreviewRequest;
   const maxDimension = extendedRequest.maxDimension ?? MAX_PREVIEW_DIMENSION;
-  const scale = Math.min(1, maxDimension / Math.max(request.asset.width, request.asset.height));
+  let currentUri = request.asset.uri;
+  let currentWidth = request.asset.width;
+  let currentHeight = request.asset.height;
+  const rotation = getRotation(request.transforms);
+  const crop = getCrop(request.transforms);
+
+  if (rotation !== 0) {
+    currentUri = await rotateImage(currentUri, rotation);
+
+    if (rotation === 90 || rotation === 270) {
+      [currentWidth, currentHeight] = [currentHeight, currentWidth];
+    }
+  }
+
+  if (crop) {
+    const cropX = clampToRange(Math.round(crop.x * currentWidth), 0, Math.max(0, currentWidth - 1));
+    const cropY = clampToRange(Math.round(crop.y * currentHeight), 0, Math.max(0, currentHeight - 1));
+    const cropWidth = clampToRange(
+      Math.round(crop.width * currentWidth),
+      1,
+      Math.max(1, currentWidth - cropX),
+    );
+    const cropHeight = clampToRange(
+      Math.round(crop.height * currentHeight),
+      1,
+      Math.max(1, currentHeight - cropY),
+    );
+
+    currentUri = await cropImage(currentUri, cropX, cropY, cropWidth, cropHeight);
+    currentWidth = cropWidth;
+    currentHeight = cropHeight;
+  }
+
+  const scale = Math.min(1, maxDimension / Math.max(currentWidth, currentHeight));
+  const targetWidth = Math.max(1, Math.round(currentWidth * scale));
+  const targetHeight = Math.max(1, Math.round(currentHeight * scale));
+
+  if (targetWidth !== currentWidth || targetHeight !== currentHeight) {
+    currentUri = await resizeImage(currentUri, {
+      maxWidth: targetWidth,
+      maxHeight: targetHeight,
+      quality: 0.8,
+    });
+    currentWidth = targetWidth;
+    currentHeight = targetHeight;
+  }
 
   return {
-    uri: request.asset.uri,
-    width: Math.round(request.asset.width * scale),
-    height: Math.round(request.asset.height * scale),
+    uri: currentUri,
+    width: currentWidth,
+    height: currentHeight,
   };
 }
 
@@ -90,4 +136,28 @@ function hasNonDefaultAdjustments(state: EditState): boolean {
     state.adjustments.saturation !== DEFAULT_ADJUSTMENTS.saturation ||
     state.adjustments.sharpen !== DEFAULT_ADJUSTMENTS.sharpen
   );
+}
+
+function getRotation(transforms: readonly Transform[]): 0 | 90 | 180 | 270 {
+  const rotateTransform = transforms.find(
+    (transform): transform is Extract<Transform, { readonly type: 'rotate' }> =>
+      transform.type === 'rotate',
+  );
+
+  return rotateTransform?.degrees ?? 0;
+}
+
+function getCrop(
+  transforms: readonly Transform[],
+): Extract<Transform, { readonly type: 'crop' }>['params'] | null {
+  const cropTransform = transforms.find(
+    (transform): transform is Extract<Transform, { readonly type: 'crop' }> =>
+      transform.type === 'crop',
+  );
+
+  return cropTransform?.params ?? null;
+}
+
+function clampToRange(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

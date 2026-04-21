@@ -19,7 +19,7 @@ export interface AppPreferences {
 }
 
 const DEFAULT_PREFERENCES: AppPreferences = {
-  language: 'vi',
+  language: 'en',
   theme: 'system',
   exportQuality: 'high',
   showWatermark: false,
