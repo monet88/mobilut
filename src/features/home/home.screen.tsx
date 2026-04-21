@@ -12,6 +12,7 @@ import { Button, IconButton, Text } from '@ui/primitives';
 
 import { DraftGrid } from './draft-grid';
 import { useDrafts } from './use-drafts';
+import { HomeAdBanner } from './home-ad-banner';
 
 function toError(err: unknown): Error {
   return err instanceof Error ? err : new Error(String(err));
@@ -130,6 +131,8 @@ export function HomeScreen(): React.JSX.Element {
         <Text variant="caption">Collection: {recentCount}</Text>
         <Text variant="caption">Drafts: {drafts.length}</Text>
       </View>
+
+      <HomeAdBanner />
 
       <LoadingOverlay visible={isLoading} message="Loading drafts…" />
     </SafeAreaView>
