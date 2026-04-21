@@ -91,6 +91,10 @@ export function HomeScreen(): React.JSX.Element {
     router.push(`/editor/${encodeURIComponent(asset.id)}`);
   }, [loadRecentCount, pickImage, refresh, router]);
 
+  const handleBatchPress = React.useCallback(() => {
+    router.push('/batch');
+  }, [router]);
+
   const bannerError = error ?? storageError ?? importError;
 
   return (
@@ -107,6 +111,7 @@ export function HomeScreen(): React.JSX.Element {
       {bannerError ? <ErrorBanner message={bannerError.message} /> : null}
 
       <Button label="Add New Photo" onPress={handleAddPhoto} loading={isPickingImage} />
+      <Button label="Batch Process" onPress={handleBatchPress} />
 
       {drafts.length > 0 ? (
         <DraftGrid
