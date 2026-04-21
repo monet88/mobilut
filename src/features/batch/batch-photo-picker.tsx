@@ -39,8 +39,19 @@ export function BatchPhotoPicker({
   const maxSelectable = MAX_BATCH_PHOTOS - currentCount;
   const selectedCount = Object.keys(selectedAssets).length;
 
+  const resetPickerState = useCallback(() => {
+    setActiveTab('recent');
+    setSelectedAlbum(null);
+    setAlbumAssets([]);
+    setSelectedAssets({});
+  }, []);
+
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      resetPickerState();
+      return;
+    }
+
     void (async () => {
       const permission = await requestPhotoLibraryPermission();
       setHasPermission(permission.granted);
@@ -49,7 +60,7 @@ export function BatchPhotoPicker({
         setAlbums(await getAlbums());
       }
     })();
-  }, [visible]);
+  }, [resetPickerState, visible]);
 
   useEffect(() => {
     if (!selectedAlbum) return;
@@ -81,11 +92,9 @@ export function BatchPhotoPicker({
 
   const handleConfirm = useCallback(() => {
     onSelect(Object.values(selectedAssets));
-    setSelectedAssets({});
-    setSelectedAlbum(null);
-    setAlbumAssets([]);
+    resetPickerState();
     onClose();
-  }, [onSelect, onClose, selectedAssets]);
+  }, [onClose, onSelect, resetPickerState, selectedAssets]);
 
   const handleBack = useCallback(() => {
     if (selectedAlbum) {

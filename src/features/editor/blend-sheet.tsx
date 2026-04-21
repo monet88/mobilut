@@ -40,8 +40,13 @@ export function BlendSheet({
   React.useEffect(() => {
     if (!visible) {
       setError(null);
+      return;
     }
-  }, [visible]);
+
+    setLayers(initialParams?.layers ? [...initialParams.layers] : []);
+    setSelectedLayerId(null);
+    setError(null);
+  }, [initialParams, visible]);
 
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   const updateLayer = useCallback(

@@ -117,4 +117,60 @@ describe('BlendSheet', () => {
     });
     expect(onPreview).not.toHaveBeenCalled();
   });
+
+  it('reinitializes layer state from initial params when reopened', async () => {
+    const onPreview = jest.fn();
+    const initialParams = {
+      layers: [
+        {
+          id: 'layer-1',
+          imageUri: 'file:///layer.jpg',
+          width: 100,
+          height: 100,
+          blendMode: 'normal' as const,
+          opacity: 1,
+          position: { x: 0, y: 0 },
+          scale: 1,
+        },
+      ],
+    };
+    const screen = render(
+      <BlendSheet
+        visible
+        initialParams={initialParams}
+        onApply={jest.fn()}
+        onCancel={jest.fn()}
+        onPreview={onPreview}
+      />,
+    );
+
+    expect(screen.getAllByLabelText('Select layer')).toHaveLength(1);
+
+    fireEvent.press(screen.getByLabelText('Clear all layers'));
+
+    expect(screen.queryAllByLabelText('Select layer')).toHaveLength(0);
+
+    screen.rerender(
+      <BlendSheet
+        visible={false}
+        initialParams={initialParams}
+        onApply={jest.fn()}
+        onCancel={jest.fn()}
+        onPreview={onPreview}
+      />,
+    );
+    screen.rerender(
+      <BlendSheet
+        visible
+        initialParams={initialParams}
+        onApply={jest.fn()}
+        onCancel={jest.fn()}
+        onPreview={onPreview}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Select layer')).toHaveLength(1);
+    });
+  });
 });

@@ -79,4 +79,46 @@ describe('BatchPhotoPicker', () => {
     expect(onSelect.mock.calls[0]?.[0]).toHaveLength(2);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('resets local selection and album state after the picker closes without confirming', async () => {
+    const recentAssets = [
+      { id: 'recent-1', uri: 'file:///recent-1.jpg', width: 100, height: 100 },
+    ];
+    const album = { id: 'album-1', title: 'Favorites', assetCount: 1 };
+
+    mockGetRecentPhotoAssets.mockResolvedValue(recentAssets);
+    mockGetAlbums.mockResolvedValue([album]);
+    mockGetAlbumPhotoAssets.mockResolvedValue([]);
+
+    const onSelect = jest.fn();
+    const onClose = jest.fn();
+    const screen = render(
+      <BatchPhotoPicker visible currentCount={0} onSelect={onSelect} onClose={onClose} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Photos (0/20)')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByLabelText('Photo, not selected'));
+    fireEvent.press(screen.getByLabelText('Albums tab'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Album Favorites')).toBeTruthy();
+      expect(screen.getByText('Select Photos (1/20)')).toBeTruthy();
+    });
+
+    screen.rerender(
+      <BatchPhotoPicker visible={false} currentCount={0} onSelect={onSelect} onClose={onClose} />,
+    );
+    screen.rerender(
+      <BatchPhotoPicker visible currentCount={0} onSelect={onSelect} onClose={onClose} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Photos (0/20)')).toBeTruthy();
+      expect(screen.queryByLabelText('Album Favorites')).toBeNull();
+    });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });
