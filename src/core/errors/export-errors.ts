@@ -35,4 +35,10 @@ export const ExportErrors = {
       `Export requires ${bytesRequired} bytes which exceeds the memory budget`,
       'errors.export.outOfMemory',
     ),
+  INVALID_SOURCE_URI: (uri: string) =>
+    new ExportImageError(
+      'EXPORT_INVALID_SOURCE_URI',
+      `Export source URI is not allowed: ${uri}`,
+      'errors.export.invalidSourceUri',
+    ),
 } as const;

@@ -84,6 +84,10 @@ function buildBaseEditState() {
     regionMask: null,
     framing: null,
     watermark: null,
+    artisticLook: null,
+    smartFilter: null,
+    proClarity: null,
+    blend: null,
   };
 }
 
@@ -129,15 +133,20 @@ describe('EditorScreen', () => {
     mockUseEditorSession.mockReturnValue(createSessionState());
   });
 
-  it('only exposes tool surfaces that have a truthful preview/export path today', async () => {
+  it('keeps the Blend tool reachable from the editor toolbar', async () => {
     const screen = renderEditorScreen();
 
     expect(screen.getByText('Crop')).toBeTruthy();
     expect(screen.getByText('Log')).toBeTruthy();
     expect(screen.getByText('Export')).toBeTruthy();
-    expect(screen.queryByText('Tools')).toBeNull();
-    expect(screen.queryByText('Adjust')).toBeNull();
-    expect(screen.queryByText('LUT')).toBeNull();
+    expect(screen.getByText('Blend')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Blend'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Add blend layer')).toBeTruthy();
+      expect(screen.getByText('Apply')).toBeTruthy();
+    });
   });
 
   it('keeps rotation controls reachable from the crop sheet', async () => {

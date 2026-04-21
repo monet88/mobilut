@@ -2,7 +2,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 export interface ResizeOptions {
   readonly maxWidth: number;
-  readonly maxHeight: number;
+  readonly maxHeight?: number;
   readonly quality?: number;
   readonly format?: ImageFormat;
 }
@@ -24,14 +24,21 @@ function getSaveFormat(format: ImageFormat | undefined): ImageManipulator.SaveFo
 }
 
 export async function resizeImage(uri: string, options: ResizeOptions): Promise<string> {
+  const resize =
+    typeof options.maxHeight === 'number'
+      ? {
+          width: options.maxWidth,
+          height: options.maxHeight,
+        }
+      : {
+          width: options.maxWidth,
+        };
+
   const result = await ImageManipulator.manipulateAsync(
     uri,
     [
       {
-        resize: {
-          width: options.maxWidth,
-          height: options.maxHeight,
-        },
+        resize,
       },
     ],
     {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+
+import { BannerAdView } from '@adapters/ads';
 import { getHomeBannerUnitId, initializeAds, shouldRenderHomeBanner } from '@services/ads';
 import { Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
@@ -8,6 +9,7 @@ import { colors, spacing } from '@theme/tokens';
 export function HomeAdBanner(): React.JSX.Element | null {
   const [adsReady, setAdsReady] = React.useState(false);
   const [loadFailed, setLoadFailed] = React.useState(false);
+  const unitId = React.useMemo(() => getHomeBannerUnitId(), []);
 
   React.useEffect(() => {
     let mounted = true;
@@ -21,18 +23,14 @@ export function HomeAdBanner(): React.JSX.Element | null {
     };
   }, []);
 
-  if (!shouldRenderHomeBanner({ adsReady, loadFailed })) {
+  if (unitId === null || !shouldRenderHomeBanner({ adsReady, loadFailed }, unitId)) {
     return null;
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Sponsored</Text>
-      <BannerAd
-        unitId={getHomeBannerUnitId()}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        onAdFailedToLoad={() => setLoadFailed(true)}
-      />
+      <BannerAdView unitId={unitId} onLoadFailed={() => setLoadFailed(true)} />
     </View>
   );
 }

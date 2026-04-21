@@ -12,6 +12,7 @@ import {
   renderPreview,
   type PreviewRenderResult,
 } from '@services/image/preview-render.service';
+import type { BlendParams } from '@core/blend';
 import type { ArtisticLookParams } from '@core/stylistic/artistic-look-model';
 import type { SmartFilterParams } from '@core/stylistic/smart-filter-model';
 import type { ProClarityParams } from '@core/stylistic/pro-clarity-model';
@@ -46,6 +47,7 @@ export function EditorScreen({
     useEditorSession(assetId, assetUri, assetWidth, assetHeight);
   const [activeSheet, setActiveSheet] = React.useState<ActiveSheet>(null);
   const [previewResult, setPreviewResult] = React.useState<PreviewRenderResult | null>(null);
+  const [previewBlend, setPreviewBlend] = React.useState<BlendParams | null>(null);
 
   const previewWidth = Math.max(220, Math.min(windowWidth - spacing.lg * 2, 420));
   const previewHeight = Math.max(
@@ -112,12 +114,18 @@ export function EditorScreen({
   );
 
   const handleBlendApply = React.useCallback(
-    (params: import('@core/blend').BlendParams | null) => {
+    (params: BlendParams | null) => {
+      setPreviewBlend(null);
       dispatch(params ? { type: 'SET_BLEND', params } : { type: 'CLEAR_BLEND' });
       closeSheet();
     },
     [closeSheet, dispatch],
   );
+
+  const handleBlendCancel = React.useCallback(() => {
+    setPreviewBlend(null);
+    closeSheet();
+  }, [closeSheet]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -139,6 +147,7 @@ export function EditorScreen({
               imageUri={previewResult?.uri ?? editState.assetUri}
               width={previewWidth}
               height={previewHeight}
+              blendLayers={previewBlend?.layers ?? editState.blend?.layers ?? null}
             />
           ) : (
             <View style={[styles.placeholder, { width: previewWidth, height: previewHeight }]}>
@@ -152,6 +161,7 @@ export function EditorScreen({
 
       <View style={styles.toolbar}>
         <Button label="Crop" onPress={() => openSheet('crop')} variant="secondary" />
+        <Button label="Blend" onPress={() => openSheet('blend')} variant="secondary" />
         <Button label="Log" onPress={() => openSheet('log')} variant="secondary" />
         <Button label="Undo" onPress={undo} disabled={!canUndo} variant="secondary" />
         <Button label="Redo" onPress={redo} disabled={!canRedo} variant="secondary" />
@@ -206,8 +216,8 @@ export function EditorScreen({
         visible={activeSheet === 'blend'}
         initialParams={editState.blend}
         onApply={handleBlendApply}
-        onCancel={closeSheet}
-        onPreview={() => undefined}
+        onCancel={handleBlendCancel}
+        onPreview={setPreviewBlend}
       />
     </SafeAreaView>
   );

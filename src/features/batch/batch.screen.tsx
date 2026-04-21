@@ -1,10 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as MediaLibrary from 'expo-media-library';
+
+import type { LibraryPhotoAsset } from '@adapters/expo/media-library';
 import { SafeAreaView } from '@ui/layout';
-import { Text } from '@ui/primitives';
-import { Slider } from '@ui/primitives';
+import { ErrorBanner } from '@ui/feedback';
+import { PresetBrowser, usePresetBrowser } from '@features/preset-browser';
+import { Slider, Text } from '@ui/primitives';
 import { BatchThumbnailStrip } from './batch-thumbnail-strip';
 import { BatchPreview } from './batch-preview';
 import { BatchPhotoPicker } from './batch-photo-picker';
@@ -29,6 +31,15 @@ export function BatchScreen(): React.JSX.Element {
 
   const [showPicker, setShowPicker] = useState(session.workspace.photos.length === 0);
   const [intensity, setIntensity] = useState(1);
+  const {
+    presets,
+    categories,
+    selectedCategory,
+    setSelectedCategory,
+    selectedPresetId,
+    setSelectedPresetId,
+    isLoading: arePresetsLoading,
+  } = usePresetBrowser();
 
   const handleBack = useCallback(() => {
     router.back();
@@ -39,7 +50,7 @@ export function BatchScreen(): React.JSX.Element {
   }, [startExport]);
 
   const handlePhotosSelected = useCallback(
-    (assets: MediaLibrary.Asset[]) => {
+    (assets: readonly LibraryPhotoAsset[]) => {
       const selections = assets.map((a) => ({
         id: a.id,
         uri: a.uri,
@@ -54,12 +65,32 @@ export function BatchScreen(): React.JSX.Element {
   const handleIntensityChange = useCallback(
     (value: number) => {
       setIntensity(value);
-      if (session.workspace.appliedPresetId) {
-        applyLut(session.workspace.appliedPresetId, value);
+      if (selectedPresetId) {
+        applyLut(selectedPresetId, value);
       }
     },
-    [applyLut, session.workspace.appliedPresetId],
+    [applyLut, selectedPresetId],
   );
+
+  const handleSelectPreset = useCallback(
+    (presetId: string) => {
+      setSelectedPresetId(presetId);
+      applyLut(presetId, intensity);
+    },
+    [applyLut, intensity, setSelectedPresetId],
+  );
+
+  const handleClearPreset = useCallback(() => {
+    setSelectedPresetId(null);
+    setIntensity(1);
+    applyLut(null, 1);
+  }, [applyLut, setSelectedPresetId]);
+
+  const batchError = session.error?.message ?? null;
+
+  const handleClosePicker = useCallback(() => {
+    setShowPicker(false);
+  }, []);
 
   if (session.state === 'exporting') {
     const progress = session.exportProgress;
@@ -115,6 +146,8 @@ export function BatchScreen(): React.JSX.Element {
         </Pressable>
       </View>
 
+      {batchError ? <ErrorBanner message={batchError} /> : null}
+
       <BatchThumbnailStrip
         photos={session.workspace.photos}
         selectedId={session.workspace.selectedPhotoId}
@@ -134,7 +167,7 @@ export function BatchScreen(): React.JSX.Element {
       <View style={styles.controls}>
         <View style={styles.intensityRow}>
           <Pressable
-            onPress={() => applyLut(null, 1)}
+            onPress={handleClearPreset}
             style={styles.clearBtn}
             accessibilityRole="button"
             accessibilityLabel="Clear LUT"
@@ -149,13 +182,22 @@ export function BatchScreen(): React.JSX.Element {
             onValueChange={handleIntensityChange}
           />
         </View>
+        <PresetBrowser
+          presets={presets}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          selectedPresetId={selectedPresetId}
+          isLoading={arePresetsLoading}
+          onSelectCategory={setSelectedCategory}
+          onSelectPreset={handleSelectPreset}
+        />
       </View>
 
       <BatchPhotoPicker
         visible={showPicker}
         currentCount={session.workspace.photos.length}
         onSelect={handlePhotosSelected}
-        onClose={() => setShowPicker(false)}
+        onClose={handleClosePicker}
       />
     </SafeAreaView>
   );

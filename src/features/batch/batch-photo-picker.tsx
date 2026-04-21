@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
-import * as MediaLibrary from 'expo-media-library';
+
+import type { LibraryAlbum, LibraryPhotoAsset } from '@adapters/expo/media-library';
+import {
+  getAlbumPhotoAssets,
+  getAlbums,
+  getRecentPhotoAssets,
+  requestPhotoLibraryPermission,
+} from '@adapters/expo/media-library';
 import { BottomSheet } from '@ui/layout';
 import { Text } from '@ui/primitives';
 import { MAX_BATCH_PHOTOS } from '@core/batch';
@@ -9,7 +16,7 @@ import { colors, spacing } from '@theme/tokens';
 interface BatchPhotoPickerProps {
   readonly visible: boolean;
   readonly currentCount: number;
-  readonly onSelect: (assets: MediaLibrary.Asset[]) => void;
+  readonly onSelect: (assets: readonly LibraryPhotoAsset[]) => void;
   readonly onClose: () => void;
 }
 
@@ -22,29 +29,24 @@ export function BatchPhotoPicker({
   onClose,
 }: BatchPhotoPickerProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<TabType>('recent');
-  const [recentAssets, setRecentAssets] = useState<MediaLibrary.Asset[]>([]);
-  const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
-  const [selectedAlbum, setSelectedAlbum] = useState<MediaLibrary.Album | null>(null);
-  const [albumAssets, setAlbumAssets] = useState<MediaLibrary.Asset[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [hasPermission, setHasPermission] = useState<boolean>(false);
+  const [recentAssets, setRecentAssets] = useState<readonly LibraryPhotoAsset[]>([]);
+  const [albums, setAlbums] = useState<readonly LibraryAlbum[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<LibraryAlbum | null>(null);
+  const [albumAssets, setAlbumAssets] = useState<readonly LibraryPhotoAsset[]>([]);
+  const [selectedAssets, setSelectedAssets] = useState<Record<string, LibraryPhotoAsset>>({});
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   const maxSelectable = MAX_BATCH_PHOTOS - currentCount;
+  const selectedCount = Object.keys(selectedAssets).length;
 
   useEffect(() => {
     if (!visible) return;
     void (async () => {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      setHasPermission(status === 'granted');
-      if (status === 'granted') {
-        const recent = await MediaLibrary.getAssetsAsync({
-          first: 100,
-          mediaType: 'photo',
-          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-        });
-        setRecentAssets(recent.assets);
-        const albumList = await MediaLibrary.getAlbumsAsync();
-        setAlbums(albumList);
+      const permission = await requestPhotoLibraryPermission();
+      setHasPermission(permission.granted);
+      if (permission.granted) {
+        setRecentAssets(await getRecentPhotoAssets());
+        setAlbums(await getAlbums());
       }
     })();
   }, [visible]);
@@ -52,38 +54,38 @@ export function BatchPhotoPicker({
   useEffect(() => {
     if (!selectedAlbum) return;
     void (async () => {
-      const assets = await MediaLibrary.getAssetsAsync({
-        first: 100,
-        album: selectedAlbum,
-        mediaType: 'photo',
-        sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-      });
-      setAlbumAssets(assets.assets);
+      setAlbumAssets(await getAlbumPhotoAssets(selectedAlbum));
     })();
   }, [selectedAlbum]);
 
   const handleToggleSelect = useCallback(
-    (asset: MediaLibrary.Asset) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(asset.id)) {
-          next.delete(asset.id);
-        } else if (next.size < maxSelectable) {
-          next.add(asset.id);
+    (asset: LibraryPhotoAsset) => {
+      setSelectedAssets((prev) => {
+        if (prev[asset.id]) {
+          const { [asset.id]: _removed, ...remaining } = prev;
+          return remaining;
         }
-        return next;
+
+        if (Object.keys(prev).length >= maxSelectable) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [asset.id]: asset,
+        };
       });
     },
     [maxSelectable],
   );
 
   const handleConfirm = useCallback(() => {
-    const assets = activeTab === 'recent' ? recentAssets : albumAssets;
-    const selected = assets.filter((a) => selectedIds.has(a.id));
-    onSelect(selected);
-    setSelectedIds(new Set());
+    onSelect(Object.values(selectedAssets));
+    setSelectedAssets({});
+    setSelectedAlbum(null);
+    setAlbumAssets([]);
     onClose();
-  }, [activeTab, recentAssets, albumAssets, selectedIds, onSelect, onClose]);
+  }, [onSelect, onClose, selectedAssets]);
 
   const handleBack = useCallback(() => {
     if (selectedAlbum) {
@@ -93,6 +95,58 @@ export function BatchPhotoPicker({
       onClose();
     }
   }, [selectedAlbum, onClose]);
+
+  const renderAlbumItem = useCallback(
+    ({ item }: { item: LibraryAlbum }) => (
+      <Pressable
+        style={styles.albumCard}
+        onPress={() => setSelectedAlbum(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`Album ${item.title}`}
+      >
+        <View style={styles.albumIcon} />
+        <Text style={styles.albumName} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={styles.albumCount}>{`${item.assetCount} photos`}</Text>
+      </Pressable>
+    ),
+    [],
+  );
+
+  const renderPhotoItem = useCallback(
+    ({ item, index }: { item: LibraryPhotoAsset; index: number }) => {
+      const isSelected = Boolean(selectedAssets[item.id]);
+
+      return (
+        <Pressable
+          style={[styles.photoCard, isSelected && styles.photoCardSelected]}
+          onPress={() => handleToggleSelect(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Photo, ${isSelected ? 'selected' : 'not selected'}`}
+        >
+          <Image source={{ uri: item.uri }} style={styles.photoThumb} />
+          {isSelected && (
+            <View style={styles.checkmark}>
+              <Text style={styles.checkmarkText}>✓</Text>
+            </View>
+          )}
+          <View style={styles.indexBadge}>
+            <Text style={styles.indexText}>{index + 1}</Text>
+          </View>
+        </Pressable>
+      );
+    },
+    [handleToggleSelect, selectedAssets],
+  );
+
+  if (hasPermission === null) {
+    return (
+      <BottomSheet visible={visible} onClose={onClose}>
+        <View />
+      </BottomSheet>
+    );
+  }
 
   if (!hasPermission) {
     return (
@@ -118,12 +172,12 @@ export function BatchPhotoPicker({
           <Text style={styles.navBtnText}>←</Text>
         </Pressable>
         <Text style={styles.title}>
-          {`Select Photos (${selectedIds.size}/${maxSelectable})`}
+          {`Select Photos (${selectedCount}/${maxSelectable})`}
         </Text>
         <Pressable
           onPress={handleConfirm}
-          disabled={selectedIds.size === 0}
-          style={[styles.navBtn, selectedIds.size === 0 && styles.navBtnDisabled]}
+          disabled={selectedCount === 0}
+          style={[styles.navBtn, selectedCount === 0 && styles.navBtnDisabled]}
           accessibilityRole="button"
           accessibilityLabel="Confirm selection"
         >
@@ -156,47 +210,21 @@ export function BatchPhotoPicker({
 
       {activeTab === 'albums' && !selectedAlbum ? (
         <FlatList
+          key="album-grid"
           data={albums}
           keyExtractor={(item) => item.id}
           numColumns={2}
           style={styles.list}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.albumCard}
-              onPress={() => setSelectedAlbum(item)}
-              accessibilityRole="button"
-              accessibilityLabel={`Album ${item.title}`}
-            >
-              <View style={styles.albumIcon} />
-              <Text style={styles.albumName} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.albumCount}>{`${item.assetCount} photos`}</Text>
-            </Pressable>
-          )}
+          renderItem={renderAlbumItem}
         />
       ) : (
         <FlatList
+          key="photo-grid"
           data={displayAssets}
           keyExtractor={(item) => item.id}
           numColumns={4}
           style={styles.list}
-          renderItem={({ item }) => {
-            const isSelected = selectedIds.has(item.id);
-            return (
-              <Pressable
-                style={[styles.photoCard, isSelected && styles.photoCardSelected]}
-                onPress={() => handleToggleSelect(item)}
-                accessibilityRole="button"
-                accessibilityLabel={`Photo, ${isSelected ? 'selected' : 'not selected'}`}
-              >
-                <Image source={{ uri: item.uri }} style={styles.photoThumb} />
-                {isSelected && (
-                  <View style={styles.checkmark}>
-                    <Text style={styles.checkmarkText}>✓</Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          }}
+          renderItem={renderPhotoItem}
         />
       )}
     </BottomSheet>
@@ -257,6 +285,15 @@ const styles = StyleSheet.create({
   },
   photoCardSelected: { borderColor: colors.accent },
   photoThumb: { width: '100%', height: '100%' },
+  indexBadge: {
+    position: 'absolute',
+    left: 4,
+    bottom: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 4,
+  },
+  indexText: { color: colors.primary, fontSize: 10 },
   checkmark: {
     position: 'absolute',
     top: 4,

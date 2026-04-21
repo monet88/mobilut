@@ -45,6 +45,7 @@ export function useBatchSession() {
 
   const addPhotos = useCallback(
     async (selections: PhotoSelection[]) => {
+      dispatch({ type: 'SET_ERROR', error: null });
       dispatch({ type: 'SET_STATE', state: 'selecting' });
       try {
         const workspace =
@@ -92,6 +93,7 @@ export function useBatchSession() {
 
   const startExport = useCallback(
     async (format: 'jpeg' | 'png') => {
+      dispatch({ type: 'SET_ERROR', error: null });
       dispatch({ type: 'SET_STATE', state: 'exporting' });
       dispatch({
         type: 'SET_PROGRESS',
@@ -124,6 +126,35 @@ export function useBatchSession() {
           error: { code: 'EXPORT_FAILED', message: 'All photos failed to export' },
         });
       }
+
+      const failedById = new Map(result.failed.map((entry) => [entry.photoId, entry.error]));
+      const successfulIds = new Set(result.successful);
+      dispatch({
+        type: 'SET_WORKSPACE',
+        workspace: {
+          ...session.workspace,
+          updatedAt: Date.now(),
+          photos: session.workspace.photos.map((photo) => {
+            if (failedById.has(photo.id)) {
+              return {
+                ...photo,
+                status: 'failed',
+                error: failedById.get(photo.id) ?? 'Export failed',
+              };
+            }
+
+            if (successfulIds.has(photo.id)) {
+              return {
+                ...photo,
+                status: 'completed',
+                error: null,
+              };
+            }
+
+            return photo;
+          }),
+        },
+      });
 
       dispatch({
         type: 'SET_STATE',

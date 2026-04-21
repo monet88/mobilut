@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+
+import { pickImageFromLibrary } from '@adapters/expo/image-picker';
 import { BottomSheet } from '@ui/layout';
-import { Text } from '@ui/primitives';
-import { Slider } from '@ui/primitives';
+import { Slider, Text } from '@ui/primitives';
 import {
   BLEND_MODE_LABELS,
   createBlendLayer,
@@ -36,15 +36,23 @@ export function BlendSheet({
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
 
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
+  const updateLayer = useCallback(
+    (layerId: string, updates: Partial<BlendLayer>, preview: boolean) => {
+      setLayers((prev) => {
+        const next = prev.map((layer) => (layer.id === layerId ? { ...layer, ...updates } : layer));
+        if (preview) {
+          onPreview(next.length > 0 ? { layers: next } : null);
+        }
+        return next;
+      });
+    },
+    [onPreview],
+  );
 
   const handleAddLayer = useCallback(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
+    const asset = await pickImageFromLibrary();
 
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
+    if (asset) {
       const newLayer = createBlendLayer(asset.uri, asset.width, asset.height);
       setLayers((prev) => {
         const next = [...prev, newLayer];
@@ -67,17 +75,6 @@ export function BlendSheet({
       }
     },
     [selectedLayerId, onPreview],
-  );
-
-  const handleUpdateLayer = useCallback(
-    (layerId: string, updates: Partial<BlendLayer>) => {
-      setLayers((prev) => {
-        const next = prev.map((l) => (l.id === layerId ? { ...l, ...updates } : l));
-        onPreview({ layers: next });
-        return next;
-      });
-    },
-    [onPreview],
   );
 
   const handleApply = useCallback(() => {
@@ -141,7 +138,7 @@ export function BlendSheet({
                   styles.modeButton,
                   selectedLayer.blendMode === mode && styles.modeButtonActive,
                 ]}
-                onPress={() => handleUpdateLayer(selectedLayer.id, { blendMode: mode })}
+                onPress={() => updateLayer(selectedLayer.id, { blendMode: mode }, true)}
                 accessibilityRole="button"
                 accessibilityLabel={`Blend mode ${BLEND_MODE_LABELS[mode]}`}
               >
@@ -165,7 +162,8 @@ export function BlendSheet({
               value={selectedLayer.opacity}
               minimumValue={0}
               maximumValue={1}
-              onValueChange={(v) => handleUpdateLayer(selectedLayer.id, { opacity: v })}
+              onValueChange={(value) => updateLayer(selectedLayer.id, { opacity: value }, false)}
+              onSlidingComplete={(value) => updateLayer(selectedLayer.id, { opacity: value }, true)}
             />
           </View>
         </View>

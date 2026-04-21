@@ -28,6 +28,23 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
+jest.mock('@features/preset-browser', () => ({
+  PresetBrowser: () => null,
+  usePresetBrowser: () => ({
+    presets: [],
+    categories: ['all'],
+    selectedCategory: 'all',
+    selectedPresetId: null,
+    setSelectedCategory: jest.fn(),
+    setSelectedPresetId: jest.fn(),
+    isLoading: false,
+  }),
+}));
+
+jest.mock('@features/batch/batch-photo-picker', () => ({
+  BatchPhotoPicker: () => null,
+}));
+
 jest.mock('@services/batch', () => ({
   createWorkspaceWithPhotos: jest.fn(async () => ({
     id: 'ws-1',
@@ -49,7 +66,7 @@ jest.mock('@services/batch', () => ({
   clearThumbnailCache: jest.fn(async () => undefined),
 }));
 
-import { BatchScreen } from '../../src/features/batch/batch.screen';
+const { BatchScreen } = require('../../src/features/batch/batch.screen');
 
 describe('BatchScreen', () => {
   beforeEach(() => {

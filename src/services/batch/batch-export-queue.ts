@@ -4,7 +4,14 @@ import type {
   BatchPhoto,
   BatchWorkspace,
 } from '@core/batch';
-import * as MediaLibrary from 'expo-media-library';
+import { deleteFile } from '@adapters/expo/file-system';
+import { saveImageToGallery } from '@adapters/expo/media-library';
+import {
+  assertSafeExportSourceUri,
+  buildAssetExportRequest,
+} from '@services/image/export-request-builder';
+import { renderExport } from '@services/image/export-render.service';
+import { renderPresetImage } from '@services/image/preset-render.service';
 
 export type ExportProgressCallback = (progress: BatchExportProgress) => void;
 
@@ -15,10 +22,42 @@ export interface BatchExportResult {
 
 async function exportSinglePhoto(
   photo: BatchPhoto,
-  _workspace: BatchWorkspace,
-  _options: BatchExportOptions,
+  workspace: BatchWorkspace,
+  options: BatchExportOptions,
 ): Promise<void> {
-  await MediaLibrary.saveToLibraryAsync(photo.uri);
+  assertSafeExportSourceUri(photo.uri);
+
+  const preparedImage = workspace.appliedPresetId
+    ? await renderPresetImage(photo, workspace, options)
+    : { uri: photo.uri, cleanupUris: [] };
+  let renderedUri: string | null = null;
+
+  try {
+    const result = await renderExport(
+      buildAssetExportRequest(
+        {
+          id: photo.id,
+          uri: preparedImage.uri,
+          width: photo.width,
+          height: photo.height,
+          format: 'jpeg',
+          fileSize: null,
+        },
+        options.format,
+        {
+          quality: options.quality,
+        },
+      ),
+    );
+
+    renderedUri = result.uri;
+    await saveImageToGallery(result.uri);
+  } finally {
+    await cleanupTemporaryFiles([
+      ...preparedImage.cleanupUris,
+      ...(renderedUri ? [renderedUri] : []),
+    ]);
+  }
 }
 
 export async function exportBatch(
@@ -60,4 +99,16 @@ export async function exportBatch(
   }
 
   return { successful, failed };
+}
+
+async function cleanupTemporaryFiles(uris: readonly string[]): Promise<void> {
+  await Promise.all(
+    uris.map(async (uri) => {
+      try {
+        await deleteFile(uri);
+      } catch {
+        // best-effort cleanup only
+      }
+    }),
+  );
 }

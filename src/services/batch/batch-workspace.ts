@@ -10,6 +10,44 @@ export interface PhotoSelection {
   readonly height: number;
 }
 
+const THUMBNAIL_CONCURRENCY = 4;
+
+async function mapSelectionsWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  );
+
+  return results;
+}
+
+async function createBatchPhoto(selection: PhotoSelection): Promise<BatchPhoto> {
+  const thumbnailUri = await generateThumbnail(selection.id, selection.uri);
+  return {
+    id: selection.id,
+    uri: selection.uri,
+    width: selection.width,
+    height: selection.height,
+    thumbnailUri,
+    status: 'pending',
+    error: null,
+  };
+}
+
 export async function createWorkspaceWithPhotos(
   selections: readonly PhotoSelection[],
 ): Promise<BatchWorkspace> {
@@ -18,20 +56,11 @@ export async function createWorkspaceWithPhotos(
   }
 
   const workspace = createBatchWorkspace();
-  const photos: BatchPhoto[] = [];
-
-  for (const selection of selections) {
-    const thumbnailUri = await generateThumbnail(selection.id, selection.uri);
-    photos.push({
-      id: selection.id,
-      uri: selection.uri,
-      width: selection.width,
-      height: selection.height,
-      thumbnailUri,
-      status: 'pending',
-      error: null,
-    });
-  }
+  const photos = await mapSelectionsWithConcurrency(
+    selections,
+    THUMBNAIL_CONCURRENCY,
+    createBatchPhoto,
+  );
 
   return {
     ...workspace,
@@ -49,19 +78,11 @@ export async function addPhotosToWorkspace(
     throw new Error(`Cannot add more than ${MAX_BATCH_PHOTOS} photos to batch`);
   }
 
-  const newPhotos: BatchPhoto[] = [];
-  for (const selection of selections) {
-    const thumbnailUri = await generateThumbnail(selection.id, selection.uri);
-    newPhotos.push({
-      id: selection.id,
-      uri: selection.uri,
-      width: selection.width,
-      height: selection.height,
-      thumbnailUri,
-      status: 'pending',
-      error: null,
-    });
-  }
+  const newPhotos = await mapSelectionsWithConcurrency(
+    selections,
+    THUMBNAIL_CONCURRENCY,
+    createBatchPhoto,
+  );
 
   return {
     ...workspace,
