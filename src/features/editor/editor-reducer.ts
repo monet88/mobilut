@@ -108,6 +108,18 @@ function applyEditAction(state: EditState, action: EditAction): EditState {
       return { ...state, watermark: action.watermark };
     case 'CLEAR_WATERMARK':
       return { ...state, watermark: null };
+    case 'SET_ARTISTIC_LOOK':
+      return { ...state, artisticLook: action.params };
+    case 'CLEAR_ARTISTIC_LOOK':
+      return { ...state, artisticLook: null };
+    case 'SET_SMART_FILTER':
+      return { ...state, smartFilter: action.params };
+    case 'CLEAR_SMART_FILTER':
+      return { ...state, smartFilter: null };
+    case 'SET_PRO_CLARITY':
+      return { ...state, proClarity: action.params };
+    case 'CLEAR_PRO_CLARITY':
+      return { ...state, proClarity: null };
     default:
       return state;
   }
