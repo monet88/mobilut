@@ -25,6 +25,14 @@ jest.mock('@services/storage', () => ({
   saveDraft: mockSaveDraft,
 }));
 
+jest.mock('react-native-google-mobile-ads', () => ({
+  __esModule: true,
+  default: () => ({ initialize: jest.fn(async () => []) }),
+  TestIds: { BANNER: 'ca-app-pub-test/banner' },
+  BannerAd: () => null,
+  BannerAdSize: { ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER' },
+}));
+
 const { HomeScreen } = require('@features/home');
 
 const draftSummary = {
