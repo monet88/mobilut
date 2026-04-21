@@ -1,5 +1,9 @@
 import { LutTable } from '@lut-core/model';
 
+import type { ArtisticLookParams } from '../stylistic/artistic-look-model';
+import type { SmartFilterParams } from '../stylistic/smart-filter-model';
+import type { ProClarityParams } from '../stylistic/pro-clarity-model';
+
 export interface CropParams {
   readonly x: number;
   readonly y: number;
@@ -54,6 +58,9 @@ export interface EditState {
   readonly regionMask: RegionMask | null;
   readonly framing: FramingParams | null;
   readonly watermark: WatermarkParams | null;
+  readonly artisticLook: ArtisticLookParams | null;
+  readonly smartFilter: SmartFilterParams | null;
+  readonly proClarity: ProClarityParams | null;
 }
 
 export const DEFAULT_ADJUSTMENTS: AdjustmentParams = Object.freeze({
@@ -84,5 +91,8 @@ export function createInitialEditState(
     regionMask: null,
     framing: null,
     watermark: null,
+    artisticLook: null,
+    smartFilter: null,
+    proClarity: null,
   });
 }

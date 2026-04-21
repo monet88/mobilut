@@ -53,6 +53,9 @@ describe('useExportImage', () => {
       regionMask: null,
       framing: null,
       watermark: null,
+      artisticLook: null,
+      smartFilter: null,
+      proClarity: null,
     };
 
     await act(async () => {
