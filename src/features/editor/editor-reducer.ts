@@ -120,6 +120,10 @@ function applyEditAction(state: EditState, action: EditAction): EditState {
       return { ...state, proClarity: action.params };
     case 'CLEAR_PRO_CLARITY':
       return { ...state, proClarity: null };
+    case 'SET_BLEND':
+      return { ...state, blend: action.params };
+    case 'CLEAR_BLEND':
+      return { ...state, blend: null };
     default:
       return state;
   }
