@@ -2,6 +2,7 @@ import type { EditState } from '@core/edit-session/edit-state';
 import { DEFAULT_ADJUSTMENTS } from '@core/edit-session/edit-state';
 import type { PreviewRequest, Transform } from '@core/image-pipeline';
 import { MAX_PREVIEW_DIMENSION } from '@core/image-pipeline/pipeline-constraints';
+import { hasProClarityApplied } from '@core/stylistic/pro-clarity-model';
 import { cropImage, resizeImage, rotateImage } from '@adapters/expo/image-manipulator';
 
 export interface PreviewRenderResult {
@@ -106,6 +107,18 @@ export function buildPreviewRequest(state: EditState): PreviewRequest {
 
   if (state.watermark) {
     transforms.push({ type: 'watermark', params: state.watermark });
+  }
+
+  if (state.artisticLook) {
+    transforms.push({ type: 'artistic-look', params: state.artisticLook });
+  }
+
+  if (state.smartFilter?.enabled) {
+    transforms.push({ type: 'smart-filter', params: state.smartFilter });
+  }
+
+  if (state.proClarity && hasProClarityApplied(state.proClarity)) {
+    transforms.push({ type: 'pro-clarity', params: state.proClarity });
   }
 
   const request: ExtendedPreviewRequest = {

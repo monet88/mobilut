@@ -12,11 +12,17 @@ import {
   renderPreview,
   type PreviewRenderResult,
 } from '@services/image/preview-render.service';
+import type { ArtisticLookParams } from '@core/stylistic/artistic-look-model';
+import type { SmartFilterParams } from '@core/stylistic/smart-filter-model';
+import type { ProClarityParams } from '@core/stylistic/pro-clarity-model';
 
 import { CropOverlay } from './components/crop-overlay';
 import { RotateControls } from './components/rotate-controls';
 import { ModificationLogSheet } from './modification-log-sheet';
 import { useEditorSession } from './use-editor-session';
+import { ArtisticLookSheet } from './artistic-look-sheet';
+import { SmartFilterSheet } from './smart-filter-sheet';
+import { ProClaritySheet } from './pro-clarity-sheet';
 
 interface EditorScreenProps {
   readonly assetId: string;
@@ -25,7 +31,7 @@ interface EditorScreenProps {
   readonly assetHeight?: number;
 }
 
-type ActiveSheet = 'crop' | 'log' | 'export' | null;
+type ActiveSheet = 'crop' | 'log' | 'export' | 'artistic-look' | 'smart-filter' | 'pro-clarity' | null;
 
 export function EditorScreen({
   assetId,
@@ -79,6 +85,30 @@ export function EditorScreen({
   const closeSheet = React.useCallback(() => {
     setActiveSheet(null);
   }, []);
+
+  const handleArtisticLookApply = React.useCallback(
+    (params: ArtisticLookParams | null) => {
+      dispatch(params ? { type: 'SET_ARTISTIC_LOOK', params } : { type: 'CLEAR_ARTISTIC_LOOK' });
+      closeSheet();
+    },
+    [closeSheet, dispatch],
+  );
+
+  const handleSmartFilterApply = React.useCallback(
+    (params: SmartFilterParams | null) => {
+      dispatch(params ? { type: 'SET_SMART_FILTER', params } : { type: 'CLEAR_SMART_FILTER' });
+      closeSheet();
+    },
+    [closeSheet, dispatch],
+  );
+
+  const handleProClarityApply = React.useCallback(
+    (params: ProClarityParams | null) => {
+      dispatch(params ? { type: 'SET_PRO_CLARITY', params } : { type: 'CLEAR_PRO_CLARITY' });
+      closeSheet();
+    },
+    [closeSheet, dispatch],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,6 +171,27 @@ export function EditorScreen({
       <BottomSheet visible={activeSheet === 'export'} title="Export" onClose={closeSheet}>
         <ExportImageScreen editState={editState} />
       </BottomSheet>
+
+      <ArtisticLookSheet
+        visible={activeSheet === 'artistic-look'}
+        initialParams={editState.artisticLook}
+        onApply={handleArtisticLookApply}
+        onCancel={closeSheet}
+      />
+
+      <SmartFilterSheet
+        visible={activeSheet === 'smart-filter'}
+        initialParams={editState.smartFilter}
+        onApply={handleSmartFilterApply}
+        onCancel={closeSheet}
+      />
+
+      <ProClaritySheet
+        visible={activeSheet === 'pro-clarity'}
+        initialParams={editState.proClarity}
+        onApply={handleProClarityApply}
+        onCancel={closeSheet}
+      />
     </SafeAreaView>
   );
 }
