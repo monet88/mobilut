@@ -31,7 +31,11 @@ function draftFile(assetId: string): string {
 }
 
 function isMissingFileError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes('ENOENT');
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /ENOENT|does not exist|could not be found|no such file/i.test(error.message);
 }
 
 function serializeEditState(state: EditState): SerializedEditState {

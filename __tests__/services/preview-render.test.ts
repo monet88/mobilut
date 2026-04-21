@@ -116,6 +116,42 @@ describe('renderPreview', () => {
     });
   });
 
+  it('clamps edge-aligned crop rectangles to the image bounds before cropping', async () => {
+    mockCropImage.mockResolvedValue('file://cropped.jpg');
+    mockResizeImage.mockResolvedValue('file://preview.jpg');
+
+    const request = {
+      asset: {
+        id: 'test',
+        uri: 'file://large.jpg',
+        width: 999,
+        height: 999,
+        format: 'jpeg' as const,
+        fileSize: null,
+      },
+      transforms: [
+        {
+          type: 'crop' as const,
+          params: {
+            x: 0.501,
+            y: 0.501,
+            width: 0.5,
+            height: 0.5,
+            aspectRatio: null,
+          },
+        },
+      ],
+      targetWidth: 499,
+      targetHeight: 499,
+      pixelRatio: 1,
+      maxDimension: 499,
+    };
+
+    await renderPreview(request);
+
+    expect(mockCropImage).toHaveBeenCalledWith('file://large.jpg', 500, 500, 499, 499);
+  });
+
   it('buildPreviewRequest creates correct request from EditState', () => {
     const state = createInitialEditState('asset-1', 'file://photo.jpg', 1920, 1080);
     const request = buildPreviewRequest(state) as {

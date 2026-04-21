@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { DraftSummary } from '@core/draft';
 import { deleteDraft, listDrafts } from '@services/storage';
@@ -11,16 +11,26 @@ export function useDrafts() {
   const [drafts, setDrafts] = useState<readonly DraftSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const refreshRequestIdRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const requestId = refreshRequestIdRef.current + 1;
+    refreshRequestIdRef.current = requestId;
     setIsLoading(true);
     setError(null);
     try {
-      setDrafts(await listDrafts());
+      const nextDrafts = await listDrafts();
+      if (refreshRequestIdRef.current === requestId) {
+        setDrafts(nextDrafts);
+      }
     } catch (err) {
-      setError(toError(err));
+      if (refreshRequestIdRef.current === requestId) {
+        setError(toError(err));
+      }
     } finally {
-      setIsLoading(false);
+      if (refreshRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, []);
 

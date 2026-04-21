@@ -54,11 +54,19 @@ function buildEntries(states: readonly EditState[]): readonly { readonly label: 
 }
 
 function describeTransition(previous: EditState, current: EditState): string {
-  if (previous.selectedPresetId !== current.selectedPresetId || previous.customLutTable !== current.customLutTable) {
-    return `LUT · ${current.selectedPresetId ?? 'Custom LUT'}`;
+  if (previous.selectedPresetId !== current.selectedPresetId) {
+    return current.selectedPresetId ? `LUT · ${current.selectedPresetId}` : 'LUT · Cleared';
+  }
+
+  if (!areCustomLutsEqual(previous.customLutTable, current.customLutTable)) {
+    return current.customLutTable ? 'LUT · Custom LUT' : 'LUT · Cleared';
   }
 
   if (!areCropsEqual(previous.crop, current.crop)) {
+    if (current.crop === null) {
+      return 'Crop · Cleared';
+    }
+
     return `Crop · ${current.crop?.aspectRatio ?? 'Freeform'}`;
   }
 
@@ -103,6 +111,31 @@ function areFramingEqual(previous: EditState['framing'], current: EditState['fra
   }
 
   return previous.borderWidth === current.borderWidth && previous.borderColor === current.borderColor && previous.borderRadius === current.borderRadius && previous.tapeStyle === current.tapeStyle;
+}
+
+function areCustomLutsEqual(
+  previous: EditState['customLutTable'],
+  current: EditState['customLutTable'],
+): boolean {
+  if (previous === current) {
+    return true;
+  }
+
+  if (previous === null || current === null) {
+    return previous === current;
+  }
+
+  if (previous.size !== current.size || previous.data.length !== current.data.length) {
+    return false;
+  }
+
+  for (let index = 0; index < previous.data.length; index += 1) {
+    if (previous.data[index] !== current.data[index]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function formatAdjustmentLabel(control: string): string {

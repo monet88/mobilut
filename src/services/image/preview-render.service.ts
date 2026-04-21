@@ -32,10 +32,18 @@ export async function renderPreview(request: PreviewRequest): Promise<PreviewRen
   }
 
   if (crop) {
-    const cropX = Math.round(crop.x * currentWidth);
-    const cropY = Math.round(crop.y * currentHeight);
-    const cropWidth = Math.max(1, Math.round(crop.width * currentWidth));
-    const cropHeight = Math.max(1, Math.round(crop.height * currentHeight));
+    const cropX = clampToRange(Math.round(crop.x * currentWidth), 0, Math.max(0, currentWidth - 1));
+    const cropY = clampToRange(Math.round(crop.y * currentHeight), 0, Math.max(0, currentHeight - 1));
+    const cropWidth = clampToRange(
+      Math.round(crop.width * currentWidth),
+      1,
+      Math.max(1, currentWidth - cropX),
+    );
+    const cropHeight = clampToRange(
+      Math.round(crop.height * currentHeight),
+      1,
+      Math.max(1, currentHeight - cropY),
+    );
 
     currentUri = await cropImage(currentUri, cropX, cropY, cropWidth, cropHeight);
     currentWidth = cropWidth;
@@ -148,4 +156,8 @@ function getCrop(
   );
 
   return cropTransform?.params ?? null;
+}
+
+function clampToRange(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

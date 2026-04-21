@@ -58,6 +58,22 @@ describe('draft-store', () => {
     mockFileMap.clear();
   });
 
+  it('treats non-ENOENT missing-file messages as absent drafts and indexes', async () => {
+    const { readFileAsText } = jest.requireMock('@adapters/expo/file-system') as {
+      readFileAsText: jest.Mock;
+    };
+
+    readFileAsText.mockImplementationOnce(async () => {
+      throw new Error("File 'file:///documents/drafts/index.json' does not exist");
+    });
+    await expect(listDrafts()).resolves.toEqual([]);
+
+    readFileAsText.mockImplementationOnce(async () => {
+      throw new Error("File 'file:///documents/drafts/asset-1.json' could not be found");
+    });
+    await expect(loadDraft('asset-1')).resolves.toBeNull();
+  });
+
   it('round-trips custom LUT data and keeps JSON storage serializable', async () => {
     const lutData = [0.1, 0.2, 0.3];
     const expectedLutData = Array.from(new Float32Array(lutData));
