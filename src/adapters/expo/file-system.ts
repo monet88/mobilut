@@ -14,6 +14,16 @@ export async function writeFile(uri: string, content: string): Promise<void> {
   await FileSystem.writeAsStringAsync(uri, content);
 }
 
+export async function writeBase64File(uri: string, content: string): Promise<void> {
+  await FileSystem.writeAsStringAsync(uri, content, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+}
+
+export async function copyFile(from: string, to: string): Promise<void> {
+  await FileSystem.copyAsync({ from, to });
+}
+
 export async function ensureDirectory(uri: string): Promise<void> {
   await FileSystem.makeDirectoryAsync(uri, { intermediates: true });
 }

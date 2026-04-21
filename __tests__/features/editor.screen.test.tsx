@@ -3,17 +3,12 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { EditorScreen } from '@features/editor';
 
-const mockBack = jest.fn();
 const mockDispatch = jest.fn();
 const mockUndo = jest.fn();
 const mockRedo = jest.fn();
 const mockSetSelectedCategory = jest.fn();
 const mockSetSelectedPresetId = jest.fn();
 const mockUseEditorSession = jest.fn();
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ back: mockBack }),
-}));
 
 jest.mock('@adapters/skia/preview-canvas', () => ({
   PreviewCanvas: () => 'Preview Canvas',
@@ -84,6 +79,10 @@ function buildBaseEditState() {
     regionMask: null,
     framing: null,
     watermark: null,
+    artisticLook: null,
+    smartFilter: null,
+    proClarity: null,
+    blend: null,
   };
 }
 
@@ -113,14 +112,20 @@ function createSessionState({
 }
 
 function renderEditorScreen() {
-  return render(
-    <EditorScreen
-      assetId="asset-1"
-      assetUri="file:///photo.jpg"
-      assetWidth={1200}
-      assetHeight={900}
-    />,
-  );
+  const onClose = jest.fn();
+
+  return {
+    ...render(
+      <EditorScreen
+        assetId="asset-1"
+        assetUri="file:///photo.jpg"
+        assetWidth={1200}
+        assetHeight={900}
+        onClose={onClose}
+      />,
+    ),
+    onClose,
+  };
 }
 
 describe('EditorScreen', () => {
@@ -129,15 +134,28 @@ describe('EditorScreen', () => {
     mockUseEditorSession.mockReturnValue(createSessionState());
   });
 
-  it('only exposes tool surfaces that have a truthful preview/export path today', async () => {
+  it('delegates close navigation to the route layer', () => {
+    const screen = renderEditorScreen();
+
+    fireEvent.press(screen.getByLabelText('Close editor'));
+
+    expect(screen.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the Blend tool reachable from the editor toolbar', async () => {
     const screen = renderEditorScreen();
 
     expect(screen.getByText('Crop')).toBeTruthy();
     expect(screen.getByText('Log')).toBeTruthy();
     expect(screen.getByText('Export')).toBeTruthy();
-    expect(screen.queryByText('Tools')).toBeNull();
-    expect(screen.queryByText('Adjust')).toBeNull();
-    expect(screen.queryByText('LUT')).toBeNull();
+    expect(screen.getByText('Blend')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Blend'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Add blend layer')).toBeTruthy();
+      expect(screen.getByText('Apply')).toBeTruthy();
+    });
   });
 
   it('keeps rotation controls reachable from the crop sheet', async () => {

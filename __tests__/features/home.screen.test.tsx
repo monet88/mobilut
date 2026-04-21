@@ -1,17 +1,12 @@
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
-const mockPush = jest.fn();
 const mockPickImage = jest.fn();
 const mockSaveDraft = jest.fn(async () => undefined);
 const mockAddRecentItem = jest.fn(async () => undefined);
 const mockGetRecentItems = jest.fn(async () => []);
 const mockListDrafts = jest.fn(async () => []);
 const mockDeleteDraft = jest.fn(async () => undefined);
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush }),
-}));
 
 jest.mock('@features/import-image', () => ({
   useImportImage: () => ({ isLoading: false, error: null, pickImage: mockPickImage }),
@@ -23,6 +18,14 @@ jest.mock('@services/storage', () => ({
   getRecentItems: mockGetRecentItems,
   listDrafts: mockListDrafts,
   saveDraft: mockSaveDraft,
+}));
+
+jest.mock('react-native-google-mobile-ads', () => ({
+  __esModule: true,
+  default: () => ({ initialize: jest.fn(async () => []) }),
+  TestIds: { BANNER: 'ca-app-pub-test/banner' },
+  BannerAd: () => null,
+  BannerAdSize: { ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER' },
 }));
 
 const { HomeScreen } = require('@features/home');
@@ -52,8 +55,21 @@ const newAsset = {
   fileSize: null,
 };
 
+function createNavigationCallbacks() {
+  return {
+    onOpenBatch: jest.fn(),
+    onOpenEditor: jest.fn(),
+    onOpenSettings: jest.fn(),
+  };
+}
+
 function renderHomeScreen() {
-  return render(<HomeScreen />);
+  const callbacks = createNavigationCallbacks();
+
+  return {
+    ...render(<HomeScreen {...callbacks} />),
+    callbacks,
+  };
 }
 
 describe('HomeScreen', () => {
@@ -68,12 +84,8 @@ describe('HomeScreen', () => {
   });
 
   it('refreshes drafts and collection counts before routing after a successful draft save', async () => {
-    mockGetRecentItems
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([newAsset]);
-    mockListDrafts
-      .mockResolvedValueOnce([draftSummary])
-      .mockResolvedValueOnce([nextDraftSummary, draftSummary]);
+    mockGetRecentItems.mockResolvedValueOnce([]).mockResolvedValueOnce([newAsset]);
+    mockListDrafts.mockResolvedValueOnce([draftSummary]).mockResolvedValueOnce([nextDraftSummary, draftSummary]);
 
     const screen = renderHomeScreen();
 
@@ -89,7 +101,7 @@ describe('HomeScreen', () => {
       expect(screen.getByText('Collection: 1')).toBeTruthy();
       expect(screen.getByText('Drafts: 2')).toBeTruthy();
       expect(screen.getByText('asset-2')).toBeTruthy();
-      expect(mockPush).toHaveBeenCalledWith('/editor/asset-2');
+      expect(screen.callbacks.onOpenEditor).toHaveBeenCalledWith('asset-2');
     });
     expect(mockGetRecentItems).toHaveBeenCalledTimes(2);
     expect(mockListDrafts).toHaveBeenCalledTimes(2);
@@ -110,14 +122,12 @@ describe('HomeScreen', () => {
       expect(screen.getByText('Failed to save draft')).toBeTruthy();
     });
     expect(mockAddRecentItem).not.toHaveBeenCalled();
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.callbacks.onOpenEditor).not.toHaveBeenCalled();
   });
 
   it('still navigates when recent-item persistence fails after the draft is saved', async () => {
     mockAddRecentItem.mockRejectedValue(new Error('Failed to update recent items'));
-    mockListDrafts
-      .mockResolvedValueOnce([draftSummary])
-      .mockResolvedValueOnce([nextDraftSummary, draftSummary]);
+    mockListDrafts.mockResolvedValueOnce([draftSummary]).mockResolvedValueOnce([nextDraftSummary, draftSummary]);
 
     const screen = renderHomeScreen();
 
@@ -129,8 +139,25 @@ describe('HomeScreen', () => {
 
     await waitFor(() => {
       expect(mockSaveDraft).toHaveBeenCalledTimes(1);
-      expect(mockPush).toHaveBeenCalledWith('/editor/asset-2');
+      expect(screen.callbacks.onOpenEditor).toHaveBeenCalledWith('asset-2');
     });
+  });
+
+  it('delegates settings, batch, and draft navigation to the route layer', async () => {
+    const screen = renderHomeScreen();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Open settings')).toBeTruthy();
+      expect(screen.getByText('asset-1')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByLabelText('Open settings'));
+    fireEvent.press(screen.getByText('Batch Process'));
+    fireEvent.press(screen.getByText('asset-1'));
+
+    expect(screen.callbacks.onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(screen.callbacks.onOpenBatch).toHaveBeenCalledTimes(1);
+    expect(screen.callbacks.onOpenEditor).toHaveBeenCalledWith('asset-1');
   });
 
   it('does not navigate when pressing Delete on a draft card', async () => {
@@ -145,7 +172,7 @@ describe('HomeScreen', () => {
     await waitFor(() => {
       expect(mockDeleteDraft).toHaveBeenCalledWith('asset-1');
     });
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.callbacks.onOpenEditor).not.toHaveBeenCalled();
   });
 
   it('shows an error banner when draft deletion fails', async () => {

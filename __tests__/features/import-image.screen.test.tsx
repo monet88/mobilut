@@ -1,14 +1,8 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { ImportImageScreen } from '@features/import-image/import-image.screen';
 import { useImportImage } from '@features/import-image/use-import-image';
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-  }),
-}));
 
 jest.mock('@ui/feedback', () => ({
   ErrorBanner: ({ message }: { message: string }) => message,
@@ -29,7 +23,7 @@ describe('ImportImageScreen', () => {
       pickImage: jest.fn(),
     });
 
-    const { getByText, queryByText } = render(<ImportImageScreen />);
+    const { getByText, queryByText } = render(<ImportImageScreen onImageSelected={jest.fn()} />);
 
     expect(getByText('Choose from Library')).toBeTruthy();
     expect(queryByText('Importing photo…')).toBeNull();
@@ -43,10 +37,38 @@ describe('ImportImageScreen', () => {
       pickImage,
     });
 
-    const { getByText } = render(<ImportImageScreen />);
+    const { getByText } = render(<ImportImageScreen onImageSelected={jest.fn()} />);
 
     fireEvent.press(getByText('Choose from Library'));
 
     expect(pickImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates successful image selection to the route layer', async () => {
+    const pickImage = jest.fn().mockResolvedValue({
+      id: 'asset-1',
+      uri: 'file:///photo.jpg',
+      width: 1200,
+      height: 900,
+      format: 'jpeg',
+      fileSize: null,
+    });
+    const onImageSelected = jest.fn();
+
+    mockedUseImportImage.mockReturnValue({
+      isLoading: false,
+      error: null,
+      pickImage,
+    });
+
+    const { getByText } = render(<ImportImageScreen onImageSelected={onImageSelected} />);
+
+    fireEvent.press(getByText('Choose from Library'));
+
+    await waitFor(() => {
+      expect(onImageSelected).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'asset-1', uri: 'file:///photo.jpg' }),
+      );
+    });
   });
 });

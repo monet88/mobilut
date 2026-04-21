@@ -1,5 +1,6 @@
 import { LutTable } from '@lut-core/model';
 
+import type { BlendParams } from '../blend/blend-model';
 import type { ArtisticLookParams } from '../stylistic/artistic-look-model';
 import type { SmartFilterParams } from '../stylistic/smart-filter-model';
 import type { ProClarityParams } from '../stylistic/pro-clarity-model';
@@ -35,4 +36,6 @@ export type EditAction =
   | { readonly type: 'SET_SMART_FILTER'; readonly params: SmartFilterParams }
   | { readonly type: 'CLEAR_SMART_FILTER' }
   | { readonly type: 'SET_PRO_CLARITY'; readonly params: ProClarityParams }
-  | { readonly type: 'CLEAR_PRO_CLARITY' };
+  | { readonly type: 'CLEAR_PRO_CLARITY' }
+  | { readonly type: 'SET_BLEND'; readonly params: BlendParams }
+  | { readonly type: 'CLEAR_BLEND' };

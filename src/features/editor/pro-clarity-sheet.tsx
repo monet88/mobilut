@@ -14,11 +14,11 @@ interface ProClaritySheetProps {
   readonly onCancel: () => void;
 }
 
-const SLIDERS: ReadonlyArray<{
+const SLIDERS: readonly {
   readonly key: keyof ProClarityParams;
   readonly label: string;
   readonly description: string;
-}> = [
+}[] = [
   { key: 'clarity', label: 'Clarity', description: 'Enhance mid-tone contrast' },
   { key: 'sharpness', label: 'Sharpness', description: 'Sharpen edges and details' },
   { key: 'structure', label: 'Structure', description: 'Enhance texture definition' },

@@ -11,6 +11,7 @@ export const ERROR_MESSAGE_KEYS = {
     permissionDenied: 'errors.export.permissionDenied',
     dimensionTooLarge: 'errors.export.dimensionTooLarge',
     outOfMemory: 'errors.export.outOfMemory',
+    invalidSourceUri: 'errors.export.invalidSourceUri',
   },
   lut: {
     parseFailed: 'errors.lut.parseFailed',

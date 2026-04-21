@@ -23,6 +23,44 @@ describe('useExportImage', () => {
     jest.clearAllMocks();
   });
 
+  it('rejects unsafe source URIs before calling the export renderer', async () => {
+    const { result } = renderHook(() => useExportImage());
+
+    const editState = {
+      assetId: 'asset-unsafe',
+      assetUri: 'javascript:alert(1)',
+      assetWidth: 1200,
+      assetHeight: 900,
+      selectedPresetId: null,
+      customLutTable: null,
+      adjustments: {
+        intensity: 1,
+        temperature: 0,
+        brightness: 0,
+        contrast: 0,
+        saturation: 0,
+        sharpen: 0,
+      },
+      rotation: 0 as const,
+      crop: null,
+      regionMask: null,
+      framing: null,
+      watermark: null,
+      artisticLook: null,
+      smartFilter: null,
+      proClarity: null,
+      blend: null,
+    };
+
+    await act(async () => {
+      const exportResult = await result.current.exportToGallery(editState, 'jpeg');
+      expect(exportResult).toBeNull();
+    });
+
+    expect(mockRenderExport).not.toHaveBeenCalled();
+    expect(result.current.error?.message).toContain('not allowed');
+  });
+
   it('passes the selected PNG format through render and share', async () => {
     mockRenderExport.mockResolvedValue({
       uri: 'file:///export.png',
