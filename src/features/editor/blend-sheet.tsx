@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { pickImageFromLibrary } from '@adapters/expo/image-picker';
+import { ErrorBanner } from '@ui/feedback';
 import { BottomSheet } from '@ui/layout';
 import { Slider, Text } from '@ui/primitives';
 import {
@@ -34,6 +35,13 @@ export function BlendSheet({
     initialParams?.layers ? [...initialParams.layers] : [],
   );
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  React.useEffect(() => {
+    if (!visible) {
+      setError(null);
+    }
+  }, [visible]);
 
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   const updateLayer = useCallback(
@@ -50,9 +58,15 @@ export function BlendSheet({
   );
 
   const handleAddLayer = useCallback(async () => {
-    const asset = await pickImageFromLibrary();
+    setError(null);
 
-    if (asset) {
+    try {
+      const asset = await pickImageFromLibrary();
+
+      if (!asset) {
+        return;
+      }
+
       const newLayer = createBlendLayer(asset.uri, asset.width, asset.height);
       setLayers((prev) => {
         const next = [...prev, newLayer];
@@ -60,6 +74,8 @@ export function BlendSheet({
         return next;
       });
       setSelectedLayerId(newLayer.id);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError : new Error(String(nextError)));
     }
   }, [onPreview]);
 
@@ -126,6 +142,8 @@ export function BlendSheet({
           )}
         />
       </View>
+
+      {error ? <ErrorBanner message={error.message} onRetry={() => void handleAddLayer()} /> : null}
 
       {selectedLayer != null && (
         <View style={styles.layerControls}>

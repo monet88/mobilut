@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 jest.mock('@ui/layout', () => {
   const React = require('react');
@@ -17,6 +17,11 @@ jest.mock('@ui/primitives', () => {
 
   return {
     Text,
+    Button: ({ label, onPress }: { label: string; onPress?: () => void }) => (
+      <Pressable accessibilityLabel={label} onPress={onPress}>
+        <Text>{label}</Text>
+      </Pressable>
+    ),
     Slider: ({ onValueChange, onSlidingComplete }: { onValueChange?: (value: number) => void; onSlidingComplete?: (value: number) => void }) => (
       <>
         <Pressable accessibilityLabel="change opacity" onPress={() => onValueChange?.(0.25)}>
@@ -30,14 +35,29 @@ jest.mock('@ui/primitives', () => {
   };
 });
 
-jest.mock('expo-image-picker', () => ({
-  launchImageLibraryAsync: jest.fn(async () => ({ canceled: true, assets: [] })),
-  MediaTypeOptions: { Images: 'Images' },
+jest.mock('@ui/feedback', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+
+  return {
+    ErrorBanner: ({ message }: { message: string }) => <Text>{message}</Text>,
+  };
+});
+
+const mockPickImageFromLibrary = jest.fn();
+
+jest.mock('@adapters/expo/image-picker', () => ({
+  pickImageFromLibrary: (...args: unknown[]) => mockPickImageFromLibrary(...args),
 }));
 
 const { BlendSheet } = require('@features/editor/blend-sheet');
 
 describe('BlendSheet', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPickImageFromLibrary.mockResolvedValue(null);
+  });
+
   it('defers preview updates for opacity changes until sliding is complete', () => {
     const onPreview = jest.fn();
     const screen = render(
@@ -75,5 +95,26 @@ describe('BlendSheet', () => {
         layers: [expect.objectContaining({ opacity: 0.25 })],
       }),
     );
+  });
+
+  it('shows a recoverable error when adding a blend layer fails', async () => {
+    mockPickImageFromLibrary.mockRejectedValue(new Error('Photo library access is required'));
+    const onPreview = jest.fn();
+    const screen = render(
+      <BlendSheet
+        visible
+        initialParams={null}
+        onApply={jest.fn()}
+        onCancel={jest.fn()}
+        onPreview={onPreview}
+      />,
+    );
+
+    fireEvent.press(screen.getByLabelText('Add blend layer'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Photo library access is required')).toBeTruthy();
+    });
+    expect(onPreview).not.toHaveBeenCalled();
   });
 });

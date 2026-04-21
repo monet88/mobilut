@@ -1,3 +1,5 @@
+import { waitFor } from '@testing-library/react-native';
+
 const mockGetFileInfo = jest.fn();
 const mockEnsureDirectory = jest.fn();
 const mockCopyFile = jest.fn();
@@ -19,6 +21,17 @@ jest.mock('@adapters/expo/image-manipulator', () => ({
 
 function loadModule() {
   return require('@services/batch/thumbnail-cache');
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
 }
 
 describe('thumbnail-cache', () => {
@@ -71,19 +84,62 @@ describe('thumbnail-cache', () => {
     });
   });
 
-  it('creates the cache directory once across repeated thumbnail generation calls', async () => {
+  it('shares cache directory creation work across concurrent thumbnail requests', async () => {
     mockGetCacheDirectory.mockReturnValue('file:///cache/');
-    mockGetFileInfo.mockImplementation(async () => ({ exists: false }));
+    const ensureDirectoryTask = deferred<void>();
+
+    mockGetFileInfo.mockImplementation(async (uri: string) => {
+      if (uri === 'file:///cache/batch-thumbnails/') {
+        return { exists: false };
+      }
+
+      return { exists: false };
+    });
+    mockEnsureDirectory.mockImplementation(() => ensureDirectoryTask.promise);
     mockResizeImage.mockResolvedValue('file:///tmp/thumb.jpg');
     mockCopyFile.mockResolvedValue(undefined);
+
+    const { generateThumbnail } = loadModule();
+
+    const first = generateThumbnail('photo-1', 'file:///source-1.jpg');
+    const second = generateThumbnail('photo-2', 'file:///source-2.jpg');
+
+    await waitFor(() => {
+      expect(mockEnsureDirectory).toHaveBeenCalledTimes(1);
+    });
+
+    ensureDirectoryTask.resolve();
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      'file:///cache/batch-thumbnails/photo-1.jpg',
+      'file:///cache/batch-thumbnails/photo-2.jpg',
+    ]);
+  });
+
+  it('rechecks and recreates the cache directory after it is later removed', async () => {
+    mockGetCacheDirectory.mockReturnValue('file:///cache/');
+    const cacheDirectoryChecks = [
+      { exists: false },
+      { exists: false },
+    ];
+
+    mockGetFileInfo.mockImplementation(async (uri: string) => {
+      if (uri === 'file:///cache/batch-thumbnails/') {
+        return cacheDirectoryChecks.shift() ?? { exists: true };
+      }
+
+      return { exists: false };
+    });
     mockEnsureDirectory.mockResolvedValue(undefined);
+    mockResizeImage.mockResolvedValue('file:///tmp/thumb.jpg');
+    mockCopyFile.mockResolvedValue(undefined);
 
     const { generateThumbnail } = loadModule();
 
     await generateThumbnail('photo-1', 'file:///source-1.jpg');
     await generateThumbnail('photo-2', 'file:///source-2.jpg');
 
-    expect(mockGetFileInfo.mock.calls.filter(([uri]) => uri === 'file:///cache/batch-thumbnails/')).toHaveLength(1);
-    expect(mockEnsureDirectory).toHaveBeenCalledTimes(1);
+    expect(mockEnsureDirectory).toHaveBeenCalledTimes(2);
+    expect(mockGetFileInfo.mock.calls.filter(([uri]) => uri === 'file:///cache/batch-thumbnails/')).toHaveLength(2);
   });
 });

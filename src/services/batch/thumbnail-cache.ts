@@ -18,13 +18,18 @@ async function ensureCacheDir(): Promise<void> {
       if (!info.exists) {
         await ensureDirectory(THUMBNAIL_CACHE_DIR);
       }
-    })().catch((error) => {
-      ensureCacheDirPromise = null;
-      throw error;
-    });
+    })();
   }
 
-  await ensureCacheDirPromise;
+  const pending = ensureCacheDirPromise;
+
+  try {
+    await pending;
+  } finally {
+    if (ensureCacheDirPromise === pending) {
+      ensureCacheDirPromise = null;
+    }
+  }
 }
 
 function toThumbnailUri(photoId: string): string {
