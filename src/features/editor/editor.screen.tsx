@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import { PreviewCanvas } from '@adapters/skia/preview-canvas';
 import { ExportImageScreen } from '@features/export-image';
@@ -31,6 +30,7 @@ interface EditorScreenProps {
   readonly assetUri?: string;
   readonly assetWidth?: number;
   readonly assetHeight?: number;
+  readonly onClose: () => void;
 }
 
 type ActiveSheet = 'crop' | 'log' | 'export' | 'artistic-look' | 'smart-filter' | 'pro-clarity' | 'blend' | null;
@@ -40,8 +40,8 @@ export function EditorScreen({
   assetUri = '',
   assetWidth = 1080,
   assetHeight = 1080,
+  onClose,
 }: EditorScreenProps): React.JSX.Element {
-  const router = useRouter();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { editState, history, isLoading, isSavingDraft, canUndo, canRedo, undo, redo, dispatch } =
     useEditorSession(assetId, assetUri, assetWidth, assetHeight);
@@ -130,7 +130,7 @@ export function EditorScreen({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <IconButton accessibilityLabel="Close editor" icon="✕" onPress={() => router.back()} />
+        <IconButton accessibilityLabel="Close editor" icon="✕" onPress={onClose} />
         <View style={styles.headerStatus}>
           <Text variant="heading">Editor</Text>
           <Text variant="caption" style={styles.statusText}>

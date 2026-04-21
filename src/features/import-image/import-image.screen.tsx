@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import type { ImageAsset } from '@core/image-pipeline/image-asset';
 import { ErrorBanner } from '@ui/feedback';
@@ -10,11 +9,10 @@ import { colors, spacing } from '@theme/tokens';
 import { useImportImage } from './use-import-image';
 
 interface ImportImageScreenProps {
-  readonly onImageSelected?: (asset: ImageAsset) => void;
+  readonly onImageSelected: (asset: ImageAsset) => void;
 }
 
 export function ImportImageScreen({ onImageSelected }: ImportImageScreenProps): React.JSX.Element {
-  const router = useRouter();
   const { isLoading, error, pickImage } = useImportImage();
 
   const handlePick = async (): Promise<void> => {
@@ -24,12 +22,7 @@ export function ImportImageScreen({ onImageSelected }: ImportImageScreenProps): 
       return;
     }
 
-    if (onImageSelected) {
-      onImageSelected(asset);
-      return;
-    }
-
-    router.push(`/editor/${asset.id}`);
+    onImageSelected(asset);
   };
 
   return (

@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import { createInitialEditState } from '@core/edit-session/edit-state';
 import { useImportImage } from '@features/import-image';
@@ -18,8 +17,17 @@ function toError(err: unknown): Error {
   return err instanceof Error ? err : new Error(String(err));
 }
 
-export function HomeScreen(): React.JSX.Element {
-  const router = useRouter();
+interface HomeScreenProps {
+  readonly onOpenBatch: () => void;
+  readonly onOpenEditor: (assetId: string) => void;
+  readonly onOpenSettings: () => void;
+}
+
+export function HomeScreen({
+  onOpenBatch,
+  onOpenEditor,
+  onOpenSettings,
+}: HomeScreenProps): React.JSX.Element {
   const { drafts, isLoading, error, refresh, remove } = useDrafts();
   const { isLoading: isPickingImage, error: importError, pickImage } = useImportImage();
   const [recentCount, setRecentCount] = React.useState(0);
@@ -89,12 +97,12 @@ export function HomeScreen(): React.JSX.Element {
       setStorageError(toError(err));
     }
 
-    router.push(`/editor/${encodeURIComponent(asset.id)}`);
-  }, [loadRecentCount, pickImage, refresh, router]);
+    onOpenEditor(asset.id);
+  }, [loadRecentCount, onOpenEditor, pickImage, refresh]);
 
   const handleBatchPress = React.useCallback(() => {
-    router.push('/batch');
-  }, [router]);
+    onOpenBatch();
+  }, [onOpenBatch]);
 
   const bannerError = error ?? storageError ?? importError;
 
@@ -102,11 +110,7 @@ export function HomeScreen(): React.JSX.Element {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text variant="heading">Mobilut</Text>
-        <IconButton
-          icon="⚙️"
-          accessibilityLabel="Open settings"
-          onPress={() => router.push('/settings')}
-        />
+        <IconButton icon="⚙️" accessibilityLabel="Open settings" onPress={onOpenSettings} />
       </View>
 
       {bannerError ? <ErrorBanner message={bannerError.message} /> : null}
@@ -117,7 +121,7 @@ export function HomeScreen(): React.JSX.Element {
       {drafts.length > 0 ? (
         <DraftGrid
           drafts={drafts}
-          onDraftPress={(assetId) => router.push(`/editor/${encodeURIComponent(assetId)}`)}
+          onDraftPress={onOpenEditor}
           onDeleteDraft={(assetId) => void remove(assetId)}
         />
       ) : (

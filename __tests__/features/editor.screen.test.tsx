@@ -3,17 +3,12 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { EditorScreen } from '@features/editor';
 
-const mockBack = jest.fn();
 const mockDispatch = jest.fn();
 const mockUndo = jest.fn();
 const mockRedo = jest.fn();
 const mockSetSelectedCategory = jest.fn();
 const mockSetSelectedPresetId = jest.fn();
 const mockUseEditorSession = jest.fn();
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ back: mockBack }),
-}));
 
 jest.mock('@adapters/skia/preview-canvas', () => ({
   PreviewCanvas: () => 'Preview Canvas',
@@ -117,20 +112,34 @@ function createSessionState({
 }
 
 function renderEditorScreen() {
-  return render(
-    <EditorScreen
-      assetId="asset-1"
-      assetUri="file:///photo.jpg"
-      assetWidth={1200}
-      assetHeight={900}
-    />,
-  );
+  const onClose = jest.fn();
+
+  return {
+    ...render(
+      <EditorScreen
+        assetId="asset-1"
+        assetUri="file:///photo.jpg"
+        assetWidth={1200}
+        assetHeight={900}
+        onClose={onClose}
+      />,
+    ),
+    onClose,
+  };
 }
 
 describe('EditorScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseEditorSession.mockReturnValue(createSessionState());
+  });
+
+  it('delegates close navigation to the route layer', () => {
+    const screen = renderEditorScreen();
+
+    fireEvent.press(screen.getByLabelText('Close editor'));
+
+    expect(screen.onClose).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the Blend tool reachable from the editor toolbar', async () => {
