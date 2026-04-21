@@ -23,6 +23,7 @@ import { useEditorSession } from './use-editor-session';
 import { ArtisticLookSheet } from './artistic-look-sheet';
 import { SmartFilterSheet } from './smart-filter-sheet';
 import { ProClaritySheet } from './pro-clarity-sheet';
+import { BlendSheet } from './blend-sheet';
 
 interface EditorScreenProps {
   readonly assetId: string;
@@ -31,7 +32,7 @@ interface EditorScreenProps {
   readonly assetHeight?: number;
 }
 
-type ActiveSheet = 'crop' | 'log' | 'export' | 'artistic-look' | 'smart-filter' | 'pro-clarity' | null;
+type ActiveSheet = 'crop' | 'log' | 'export' | 'artistic-look' | 'smart-filter' | 'pro-clarity' | 'blend' | null;
 
 export function EditorScreen({
   assetId,
@@ -105,6 +106,14 @@ export function EditorScreen({
   const handleProClarityApply = React.useCallback(
     (params: ProClarityParams | null) => {
       dispatch(params ? { type: 'SET_PRO_CLARITY', params } : { type: 'CLEAR_PRO_CLARITY' });
+      closeSheet();
+    },
+    [closeSheet, dispatch],
+  );
+
+  const handleBlendApply = React.useCallback(
+    (params: import('@core/blend').BlendParams | null) => {
+      dispatch(params ? { type: 'SET_BLEND', params } : { type: 'CLEAR_BLEND' });
       closeSheet();
     },
     [closeSheet, dispatch],
@@ -191,6 +200,14 @@ export function EditorScreen({
         initialParams={editState.proClarity}
         onApply={handleProClarityApply}
         onCancel={closeSheet}
+      />
+
+      <BlendSheet
+        visible={activeSheet === 'blend'}
+        initialParams={editState.blend}
+        onApply={handleBlendApply}
+        onCancel={closeSheet}
+        onPreview={() => undefined}
       />
     </SafeAreaView>
   );

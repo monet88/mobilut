@@ -5,7 +5,7 @@ import { BottomSheet } from '@ui/layout';
 import { Text } from '@ui/primitives';
 import { colors, spacing } from '@theme/tokens';
 
-export type EditorSheetKey = 'crop' | 'adjust' | 'lut' | 'log' | 'export' | 'frame' | 'smart-filter' | 'pro-clarity' | 'artistic-look';
+export type EditorSheetKey = 'crop' | 'adjust' | 'lut' | 'log' | 'export' | 'frame' | 'smart-filter' | 'pro-clarity' | 'artistic-look' | 'blend';
 
 interface ToolSheetItem {
   readonly label: string;
@@ -21,7 +21,7 @@ const TOOL_ITEMS: readonly ToolSheetItem[] = [
   { label: 'Pro', sheet: 'pro-clarity' },
   { label: 'Art', sheet: 'artistic-look' },
   { label: 'Border', sheet: 'frame' },
-  { label: 'Blend', sheet: null, disabled: true },
+  { label: 'Blend', sheet: 'blend' },
   { label: 'Frame', sheet: 'frame' },
 ] as const;
 
