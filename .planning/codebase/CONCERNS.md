@@ -1,98 +1,122 @@
-# Concerns
+# Concerns & Technical Debt
 
-**Mapped:** 2026-04-20
+> Last mapped: 2026-04-22
 
-## Critical Concerns
+## High Priority
 
 ### 1. LUT Shader is a Placeholder
-**File:** `src/adapters/skia/shader-sources.ts`
-**Severity:** HIGH
 
-The `LUT_APPLY_SHADER` GLSL code contains a comment "Placeholder for strip texture lookup in Wave 4" and does NOT actually apply the LUT:
-```glsl
-float _unused = r + g + b + intensity + lutStrip.eval(coord).a;
-return color;  // Returns ORIGINAL color unchanged
-```
+**Location**: `src/adapters/skia/shader-sources.ts` (line 14)
 
-The shader calculates LUT coordinates but discards them, returning the unmodified pixel. LUT color grading is **not functional** in the current preview/export pipeline.
+The `LUT_APPLY_SHADER` contains a comment "Placeholder for strip texture lookup in Wave 4." The shader currently reads input color and returns it unmodified — it does not actually apply any LUT transformation on the GPU. All LUT preview is done via CPU-side processing, which limits real-time performance for large images.
 
-### 2. Theme Token Mismatch with DESIGN.md
-**Files:** `src/theme/tokens.ts` vs `DESIGN.md`
-**Severity:** MEDIUM
+**Impact**: Core feature is not GPU-accelerated. Preview may lag on large images.
 
-The theme tokens don't match the design system spec:
-| Token | `tokens.ts` | `DESIGN.md` |
-|-------|-------------|-------------|
-| accent | `#FF6B35` (orange) | `#00B4A6` (teal) |
-| background | `#0A0A0A` | `#000000` |
-| surface | `#1A1A1A` | `#0A0A0A` |
-| error | `#FF4444` | `#FF453A` |
+### 2. Design Token Mismatch
 
-The running code uses different colors than the design spec. This needs reconciliation before UI polish.
+**Location**: `src/theme/tokens.ts` vs `DESIGN.md`
 
-### 3. Preview ≠ Export Not Fully Wired
-**Files:** `src/services/image/preview-render.service.ts`, `src/services/image/export-render.service.ts`
-**Severity:** MEDIUM
+The design system spec (`DESIGN.md`) defines:
+- Primary accent: Mobilut Teal `#00B4A6`
+- Surfaces: `#000000`, `#0A0A0A`, `#141414`, `#1C1C1E`
+- Semantic: success `#34C759`, warning `#FF9F0A`, error `#FF453A`
 
-`renderPreview()` currently returns a passthrough result (same URI, scaled dimensions) without actually running transforms through the Skia pipeline. The preview/export separation architecture exists in types but the actual GPU rendering pipeline is incomplete.
+But `src/theme/tokens.ts` still uses legacy values:
+- Accent: `#FF6B35` (orange, not teal)
+- Error: `#FF4444` (not `#FF453A`)
+- Success: `#44FF88` (not `#34C759`)
+- Warning: `#FFAA44` (not `#FF9F0A`)
 
-## Technical Debt
+The design system document and actual code tokens are **not aligned**. This means the running app does not match the intended design.
 
-### Placeholder Modules
-Three modules are empty barrels with TODO comments:
-- `src/hooks/index.ts` — `// TODO: export module contents`
-- `src/lib/index.ts` — `// TODO: export module contents`
-- `src/services/diagnostics/index.ts` — `// TODO: export module contents`
+### 3. Placeholder Modules (Empty Barrels)
 
-### AdMob Test IDs in Config
-**File:** `app.config.js`
+Three modules are empty placeholders with no implementation:
 
-Google AdMob is configured with test app IDs. These must be replaced with production IDs before store release:
-- Android: `ca-app-pub-3940256099942544~3347511713` (test)
-- iOS: `ca-app-pub-3940256099942544~1458002511` (test)
+| Module | File | Status |
+|--------|------|--------|
+| `src/hooks/index.ts` | `export {}` | Placeholder, no hooks exported |
+| `src/lib/index.ts` | `export {}` | Placeholder, no utilities exported |
+| `src/services/diagnostics/index.ts` | `export {}` | Placeholder, no diagnostics |
 
-### Anonymous Bundle Identifiers
-- iOS: `com.anonymous.lut-app`
-- Android: `com.anonymous.lutapp`
+These exist in the module structure but contribute nothing. The `diagnostics` module is meant for error/performance tracking but has no implementation.
 
-These are placeholder identifiers that need to be updated to real app identifiers before release.
+## Medium Priority
 
-### i18n Default Language
-**File:** `src/i18n/index.ts`
+### 4. No Test Setup / Shared Mocks
 
-Default language is set to `'vi'` (Vietnamese), but AGENTS.md says v1 UI is English-only. This may cause confusion — the default should probably be `'en'` for v1.
+**Location**: `jest.setup.ts`
 
-## Fragile Areas
+The global test setup file is a placeholder (`export {}`). There are no shared mocks configured. Each test file independently mocks Expo/Skia modules, likely leading to duplication and inconsistency across the 33 test files.
 
-### New Architecture Disabled
-Both iOS and Android have `newArchEnabled: false`. This pins the app to the old architecture, which may limit performance and compatibility with newer RN libraries.
+### 5. Dead Code: `computeSmartFilterCorrection`
 
-### react-native-screens Codegen Patch
-A postinstall script (`scripts/fix-rn-screens-codegen.js`) patches react-native-screens. This is fragile and may break on version updates.
+**Location**: `src/core/stylistic/smart-filter-model.ts` (line 24)
 
-### No Error Boundary at Feature Level
-The root layout has an `ErrorBoundary` class component, but there are no per-feature error boundaries. A Skia shader crash could take down the entire app.
+Contains a TODO comment: `// TODO(phase-2): computeSmartFilterCorrection is defined but never called.`
 
-## Performance Considerations
+This function exists in the codebase but is not invoked anywhere.
 
-### Image Size Constraints
-- `pipeline-constraints.ts` defines `MAX_PREVIEW_DIMENSION` for preview downscaling
-- Export must handle full-resolution images without OOM
-- No lazy loading pattern for preset thumbnails observed
+### 6. AsyncStorage Direct Import in Services
 
-### LUT Table Memory
-- `LutTable` uses `Float32Array` backed storage
-- A 64³ LUT = 64×64×64×3×4 = ~3MB per table
-- Multiple LUTs loaded simultaneously could be significant on low-memory devices
+**Location**: `src/services/storage/app-preferences.ts` (line 1)
 
-## Security
+`app-preferences.ts` directly imports `@react-native-async-storage/async-storage` instead of going through `@adapters/`. This violates the architectural rule that services should use adapters, not vendor packages directly. Other storage services correctly use `@adapters/expo/file-system`.
 
-### No Sensitive Data
-- No authentication, no tokens, no API keys (except test AdMob IDs)
-- All data is local — no network attack surface in v1
-- File system access limited to user-selected photos and documents
+### 7. Test Coverage Gaps
 
-### Input Validation
-- .cube parser validates size, value ranges (0..1), data count — good
-- HaldCLUT parser validates PNG dimensions — good
-- Image import validates file size and format — good
+Significant areas lack test coverage (see `TESTING.md` for full list):
+- All Skia adapters (9 files) — partially expected since GPU shaders are hard to unit test
+- All UI components (`src/ui/`) — no component tests for primitives, layout, feedback
+- LUT services (`src/services/lut/`) — import/export/library services
+- Several feature modules: watermark, framing, import-lut, export-lut, preset-browser
+- Export pipeline: `export-render.service.ts`, `export-request-builder.ts`
+
+### 8. New Architecture Disabled
+
+**Location**: `app.config.js`
+
+Both iOS and Android have `newArchEnabled: false`. React Native 0.76 supports the new architecture, and Expo 52 is compatible. Remaining on old arch may limit future performance optimizations and access to new APIs.
+
+## Low Priority
+
+### 9. Postinstall Workaround
+
+**Location**: `scripts/fix-rn-screens-codegen.js`, `package.json` postinstall
+
+A postinstall script patches react-native-screens codegen. This is likely a temporary workaround for a compatibility issue and should be reviewed when upgrading dependencies.
+
+### 10. Test App IDs in Config
+
+**Location**: `app.json`, `app.config.js`
+
+AdMob test IDs (`ca-app-pub-3940256099942544~*`) are hardcoded in config files. While correct for development, production IDs should be managed via environment variables or build-time configuration to avoid accidentally shipping test IDs.
+
+### 11. Hardcoded Error Strings in Layout
+
+**Location**: `app/_layout.tsx` (lines 57-60)
+
+The `ErrorBoundary` in the root layout uses hardcoded hex colors (`#FF4444`, `#AAAAAA`, `#0A0A0A`) instead of importing from `@theme/tokens`. While minor, this is inconsistent with the theme-token convention.
+
+### 12. No EXIF Integration Tests
+
+**Location**: `src/adapters/exif/exif-reader.ts`
+
+The EXIF reader adapter exists but has no tests. EXIF metadata is used for watermark display, so failures here could silently produce incorrect output.
+
+## Architecture Observations
+
+### What's Working Well
+
+- **Module boundary discipline** is strong — AGENTS.md files document and enforce boundaries
+- **Immutable state model** (EditState + History) is well-designed and consistently applied
+- **Feature-sliced architecture** keeps features self-contained
+- **Adapter pattern** cleanly isolates vendor dependencies
+- **Error hierarchy** is typed and comprehensive
+- **LUT core isolation** in `packages/lut-core/` keeps pure logic cleanly separated
+
+### Areas to Watch
+
+- **Preview pipeline complexity**: `preview-render.service.ts` (179 lines) handles rotation, crop, resize sequentially — each step creates a new URI. Memory pressure could grow with complex edit chains.
+- **Draft serialization**: `Float32Array` → `number[]` → JSON serialization in `draft-store.ts` may produce very large files for high-resolution custom LUTs.
+- **Batch processing**: Models and services exist (`src/core/batch/`, `src/services/batch/`, `src/features/batch/`) but the feature is described as "planned for a later milestone" in AGENTS.md — yet substantial code is already written.

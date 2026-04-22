@@ -1,114 +1,95 @@
 # Technology Stack
 
-**Mapped:** 2026-04-20
+> Last mapped: 2026-04-22
 
-## Language & Runtime
+## Languages & Runtime
 
-| Technology | Version | Notes |
+| Language | Version | Usage |
+|----------|---------|-------|
+| TypeScript | 5.6.3 | Primary language, strict mode enabled |
+| SkSL (Skia Shader Language) | — | GPU shaders for LUT application, masking, framing, artistic effects |
+| JavaScript | — | Config files only (`babel.config.js`, `metro.config.js`, `app.config.js`) |
+
+## Framework & Platform
+
+| Component | Version | Notes |
 |-----------|---------|-------|
-| TypeScript | 5.6.3 | Strict mode enabled |
-| React | 18.3.1 | Standard hooks-based patterns |
-| React Native | 0.76.3 | New Architecture disabled (`newArchEnabled: false`) |
+| React Native | 0.76.3 | Cross-platform mobile (iOS + Android) |
+| React | 18.3.1 | UI library |
+| Expo | ~52.0.0 | Managed workflow with EAS Build |
+| Expo Router | ~4.0.0 | File-system-based routing (`app/` directory) |
+| New Architecture | **disabled** | `newArchEnabled: false` on both iOS and Android |
 
-## Framework
+## Monorepo Structure
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| App Framework | Expo | ~52.0.0 |
-| Router | expo-router | ~4.0.0 |
-| Bundler | Metro | Default Expo config, symlinks enabled |
-| Build Service | EAS Build | CLI >= 16.0.1 |
+npm workspaces with two packages:
 
-Expo managed workflow with typed routes (`experiments.typedRoutes: true`). Entry point via `expo-router/entry`.
+| Package | Path | Purpose |
+|---------|------|---------|
+| Root app (`lut-app`) | `/` | React Native + Expo application |
+| `@lut-app/lut-core` | `packages/lut-core/` | Pure TypeScript LUT parsing/interpolation (zero RN deps) |
+
+Metro is configured to watch `packages/` and resolve symlinks (`unstable_enableSymlinks: true`).
 
 ## Key Dependencies
 
-### Core Runtime
+### Production
+
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `@shopify/react-native-skia` | 1.5.0 | GPU-accelerated rendering, GLSL shaders for LUT application |
+| `@shopify/react-native-skia` | 1.5.0 | GPU rendering, shaders, canvas-based image processing |
 | `react-native-reanimated` | ~3.16.1 | Gesture-driven animations |
 | `react-native-safe-area-context` | 5.7.0 | Safe area insets |
-| `react-native-screens` | 4.24.0 | Native navigation screens |
-
-### Expo Modules
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `expo-file-system` | ~18.0.0 | File I/O for LUT import/export |
-| `expo-image-picker` | ~16.0.0 | Photo library access |
-| `expo-image-manipulator` | ~13.0.0 | Image resizing/manipulation |
+| `react-native-screens` | 4.24.0 | Native screen containers |
+| `react-native-google-mobile-ads` | 14.8.0 | AdMob banner ads |
+| `@react-native-async-storage/async-storage` | 2.0.0 | Key-value persistence (preferences) |
+| `i18next` + `react-i18next` | 25.0.0 / 15.0.0 | Internationalization (EN + VI) |
+| `expo-file-system` | ~18.0.0 | File I/O (drafts, LUT storage) |
+| `expo-image-picker` | ~16.0.0 | Gallery/camera image selection |
+| `expo-image-manipulator` | ~13.0.0 | CPU-side image resize/crop/rotate |
+| `expo-media-library` | ~17.0.0 | Save exports to device gallery |
 | `expo-document-picker` | ~13.0.0 | .cube file import |
-| `expo-media-library` | ~17.0.0 | Save to camera roll |
-| `expo-sharing` | ~13.0.0 | Share exported images |
+| `expo-sharing` | ~13.0.0 | Share exported files |
 | `expo-asset` | ~11.0.5 | Bundled asset loading |
 | `expo-dev-client` | ~5.0.0 | Development builds |
-| `expo-modules-core` | ~2.0.0 | Native module bridge |
 
-### Data & State
+### Development
+
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `@react-native-async-storage/async-storage` | 2.0.0 | Local persistence (imported LUT records, preferences) |
-
-### Internationalization
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `i18next` | 25.0.0 | Translation framework |
-| `react-i18next` | 15.0.0 | React bindings for i18n |
-
-### Monetization
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `react-native-google-mobile-ads` | 14.8.0 | AdMob integration (test IDs configured) |
-
-## Dev Tooling
-
-| Tool | Version | Config File |
-|------|---------|-------------|
-| Jest | 29.7.0 | `jest.config.js` |
-| jest-expo | ~52.0.0 | Preset for Expo |
-| @testing-library/react-native | 13.0.0 | Component testing |
-| ESLint | 8.57.1 | `.eslintrc.js` (extends `expo`) |
-| Prettier | 3.3.3 | `.prettierrc` |
-| babel-plugin-module-resolver | 5.0.2 | Path alias resolution |
-
-## Monorepo
-
-npm workspaces with one internal package:
-
-- **Root:** React Native + Expo app
-- **`packages/lut-core`** (`@lut-app/lut-core`): Pure TypeScript LUT library — no React Native dependencies, no Expo imports. Independently testable.
-
-Metro configured with `config.watchFolders` and `unstable_enableSymlinks` for monorepo resolution.
+| `jest` + `jest-expo` | 29.7.0 / ~52.0.0 | Testing framework |
+| `@testing-library/react-native` | 13.0.0 | Component testing |
+| `react-test-renderer` | 18.3.1 | Snapshot rendering |
+| `eslint` + `eslint-config-expo` | 8.57.1 / ~8.0.1 | Linting |
+| `prettier` | 3.3.3 | Code formatting |
+| `babel-plugin-module-resolver` | 5.0.2 | Path alias resolution |
 
 ## Path Aliases
 
-Configured in both `tsconfig.json` and `babel.config.js` (via `module-resolver`):
+Configured in `tsconfig.json`, `babel.config.js`, and `jest.config.js`:
 
-| Alias | Path |
-|-------|------|
+| Alias | Target |
+|-------|--------|
 | `@core/*` | `src/core/*` |
 | `@features/*` | `src/features/*` |
 | `@services/*` | `src/services/*` |
 | `@adapters/*` | `src/adapters/*` |
 | `@ui/*` | `src/ui/*` |
-| `@theme` / `@theme/*` | `src/theme` |
-| `@hooks` / `@hooks/*` | `src/hooks` |
-| `@lib` / `@lib/*` | `src/lib` |
-| `@i18n` / `@i18n/*` | `src/i18n` |
-| `@lut-core` / `@lut-core/*` | `packages/lut-core/src` |
+| `@theme` / `@theme/*` | `src/theme` / `src/theme/*` |
+| `@hooks` / `@hooks/*` | `src/hooks` / `src/hooks/*` |
+| `@lib` / `@lib/*` | `src/lib` / `src/lib/*` |
+| `@i18n` / `@i18n/*` | `src/i18n` / `src/i18n/*` |
+| `@lut-core` / `@lut-core/*` | `packages/lut-core/src` / `packages/lut-core/src/*` |
 
-## Build Configuration
+## Build & CI Configuration
 
-- **Platforms:** iOS + Android only (no web)
-- **iOS bundle:** `com.anonymous.lut-app`
-- **Android package:** `com.anonymous.lutapp`
-- **URL scheme:** `lutapp`
-- **Postinstall:** `scripts/fix-rn-screens-codegen.js` — patches react-native-screens codegen
+- **EAS Build** (`eas.json`): 3 profiles — `development` (dev client, internal), `preview` (internal), `production` (auto-increment)
+- **EAS CLI**: `>= 16.0.1`, app version source `remote`
+- **Typed Routes**: enabled via `experiments.typedRoutes: true`
+- **Postinstall script**: `scripts/fix-rn-screens-codegen.js` (patches react-native-screens codegen issue)
 
-## EAS Build Profiles
+## Code Style Configuration
 
-| Profile | Distribution | Dev Client | Auto Increment |
-|---------|-------------|------------|----------------|
-| development | internal | yes | yes |
-| preview | internal | no | yes |
-| production | — | no | yes |
+- **ESLint**: `eslint-config-expo` base, `no-console: warn`
+- **Prettier**: single quotes, trailing commas, semicolons, 100 char print width
+- **TypeScript**: strict mode, extends `expo/tsconfig.base`

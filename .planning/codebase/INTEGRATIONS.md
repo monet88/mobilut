@@ -1,63 +1,91 @@
 # External Integrations
 
-**Mapped:** 2026-04-20
+> Last mapped: 2026-04-22
 
 ## Overview
 
-This is a **local-first** app with no backend. All integrations are device-local or via native platform APIs. No network services in v1.
+Mobilut is a **local-first** app — no backend, no cloud sync, no user accounts in v1. All integrations are on-device SDKs or native APIs.
 
-## Device APIs (via Expo Modules)
+## Google Mobile Ads (AdMob)
 
-| Integration | Adapter | Purpose |
-|------------|---------|---------|
-| Photo Library | `src/adapters/expo/image-picker.ts` | Pick images from user gallery |
-| Media Library | `src/adapters/expo/media-library.ts` | Save exported images to camera roll |
-| Document Picker | `src/adapters/expo/document-picker.ts` | Import .cube LUT files from Files app |
-| File System | `src/adapters/expo/file-system.ts` | Read/write LUT files, temp storage |
-| Image Manipulator | `src/adapters/expo/image-manipulator.ts` | Resize/transform images for export |
-| Sharing | `src/adapters/expo/sharing.ts` | Share exported images via system sheet |
+| Item | Detail |
+|------|--------|
+| Package | `react-native-google-mobile-ads` 14.8.0 |
+| Config | `app.json` + `app.config.js` plugin |
+| iOS App ID | `ca-app-pub-3940256099942544~1458002511` (test) |
+| Android App ID | `ca-app-pub-3940256099942544~3347511713` (test) |
+| Ad Format | Banner only (`BannerAdSize.ANCHORED_ADAPTIVE_BANNER`) |
+| Placement | Home screen banner (`src/features/home/home-ad-banner.tsx`) |
 
-## Storage
+### Code Flow
 
-| Store | Technology | Key | Purpose |
-|-------|-----------|-----|---------|
-| Imported LUTs | AsyncStorage | `@lut-app/importedLuts` | Track imported .cube and HaldCLUT records |
-| App Preferences | AsyncStorage | (via `src/services/storage/app-preferences.ts`) | User settings persistence |
-| Recent Items | AsyncStorage | (via `src/services/storage/recent-items.ts`) | Recent file access history |
+1. **Adapter**: `src/adapters/ads/mobile-ads.tsx` — wraps `mobileAds()`, `BannerAd`, `TestIds`
+2. **Service**: `src/services/ads/ad-manager.ts` — initialization singleton, unit ID resolution, render policy
+3. **Feature**: `src/features/home/home-ad-banner.tsx` — renders banner in home screen
 
-## GPU / Rendering
+### Configuration
 
-| Integration | Adapter | Purpose |
-|------------|---------|---------|
-| Skia Canvas | `src/adapters/skia/preview-canvas.tsx` | GPU-rendered preview display |
-| GLSL Shaders | `src/adapters/skia/shader-sources.ts` | LUT application, mask compositing, frame rendering |
-| Runtime Effects | `src/adapters/skia/runtime-effect-factory.ts` | Compile GLSL to Skia runtime effects |
-| Mask Renderer | `src/adapters/skia/mask-renderer.ts` | Region-based selective editing |
+- In dev (`__DEV__`): always uses `TestIds.BANNER`
+- In production: reads `EXPO_PUBLIC_HOME_BANNER_AD_UNIT_ID` env var; returns `null` if not configured (banner hidden)
 
-## Monetization
+## Expo Native Modules
 
-| Integration | Config | Status |
-|------------|--------|--------|
-| Google AdMob | `app.config.js` plugin | **Test mode** — using Google test app IDs |
+All accessed through `src/adapters/expo/`:
 
-Test IDs configured:
-- Android: `ca-app-pub-3940256099942544~3347511713`
-- iOS: `ca-app-pub-3940256099942544~1458002511`
+| Module | Adapter File | Purpose |
+|--------|-------------|---------|
+| `expo-image-picker` | `image-picker.ts` | Pick photos from gallery or camera |
+| `expo-document-picker` | `document-picker.ts` | Pick `.cube` LUT files from filesystem |
+| `expo-file-system` | `file-system.ts` | Read/write files (drafts, LUT storage, exports) |
+| `expo-image-manipulator` | `image-manipulator.ts` | CPU-side crop, rotate, resize, format conversion |
+| `expo-media-library` | `media-library.ts` | Save exported images to device photo library |
+| `expo-sharing` | `sharing.ts` | Share exported files via system share sheet |
 
-## EXIF
+## Skia Runtime
 
-| Integration | Adapter | Purpose |
-|------------|---------|---------|
-| EXIF Reader | `src/adapters/exif/exif-reader.ts` | Read photo metadata for watermark display |
+| Item | Detail |
+|------|--------|
+| Package | `@shopify/react-native-skia` 1.5.0 |
+| Adapter | `src/adapters/skia/` (9 files) |
+| GPU Shaders | LUT application, blend modes, masking, framing, artistic looks, pro clarity |
 
-## Databases
+### Shader Components
 
-None. Local-first with AsyncStorage for key-value persistence.
+| File | Purpose |
+|------|---------|
+| `shader-sources.ts` | SkSL source code: LUT strip lookup, mask compositing, frame border |
+| `artistic-look-shader.ts` | Color matrix transform + vignette + grain + contrast |
+| `clarity-shader.ts` | Laplacian sharpness, clarity, structure, micro-contrast |
+| `blend-shader.ts` | Blend mode mapping (Skia blend modes) |
+| `preview-canvas.tsx` | React component wrapping Skia `Canvas` + `Image` + blend layers |
+| `offscreen-render.tsx` | Offscreen GPU rendering for export |
+| `mask-renderer.ts` | Region mask rendering |
+| `runtime-effect-factory.ts` | `RuntimeEffect.Make()` wrapper |
 
-## Cloud Services
+## On-Device Storage
 
-None in v1. Cloud sync, user accounts, and backend services are explicitly deferred.
+| Store | Mechanism | Location |
+|-------|-----------|----------|
+| App Preferences | `@react-native-async-storage/async-storage` | Key-value (language, theme, export quality, watermark toggle) |
+| Drafts | `expo-file-system` | `<documentDir>/drafts/` (JSON files + index) |
+| Imported LUTs | `expo-file-system` | `<documentDir>/luts/` |
+| Recent Items | `@react-native-async-storage/async-storage` | Recent asset IDs |
 
-## Auth Providers
+## Internationalization
 
-None. No user accounts in v1.
+| Item | Detail |
+|------|--------|
+| Library | `i18next` 25.0.0 + `react-i18next` 15.0.0 |
+| Languages | English (`en.ts`), Vietnamese (`vi.ts`) |
+| Default | English |
+| Init | `src/i18n/index.ts` → called from `app/_layout.tsx` |
+
+## No External APIs
+
+The following are explicitly **not used** in v1:
+- No backend server
+- No cloud storage
+- No analytics service (diagnostics module is a placeholder)
+- No crash reporting
+- No auth provider
+- No push notifications

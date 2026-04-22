@@ -1,122 +1,114 @@
 # Architecture
 
-**Mapped:** 2026-04-20
+> Last mapped: 2026-04-22
 
-## Pattern
+## Architectural Pattern
 
-**Layered feature-based architecture** with strict module boundaries:
+**Layered Architecture** with strict module boundaries, enforced by convention and AGENTS.md files.
 
 ```
-┌──────────────────────────────────────────────────┐
-│  app/             Routes & Navigation            │
-├──────────────────────────────────────────────────┤
-│  src/features/    Feature UI + Hooks             │
-├──────────────────────────────────────────────────┤
-│  src/services/    Orchestration                  │
-├──────────────────────────────────────────────────┤
-│  src/core/        Domain Types & Rules           │
-├──────────────────────────────────────────────────┤
-│  src/adapters/    Expo/Skia/EXIF Wrappers        │
-├──────────────────────────────────────────────────┤
-│  packages/lut-core/  Pure TS LUT Math            │
-└──────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  app/  (Expo Router — routes, layouts, navigation)  │
+├─────────────────────────────────────────────────────┤
+│  src/features/  (Feature-sliced UI + hooks)         │
+├─────────────────────────────────────────────────────┤
+│  src/services/  (Orchestration, business logic)     │
+├─────────────────────────────────────────────────────┤
+│  src/adapters/  (Vendor API wrappers)               │
+├─────────────────────────────────────────────────────┤
+│  src/core/  (Pure TS domain models & contracts)     │
+│  packages/lut-core/  (Pure TS LUT engine)           │
+└─────────────────────────────────────────────────────┘
 ```
 
-Dependencies flow **downward only**. No layer may import from above.
+### Dependency Rules (Top-Down Only)
 
-## Module Boundaries
-
-| Module | Responsibility | MUST NOT contain |
-|--------|---------------|------------------|
-| `app/` | Routes, layouts, navigation wiring | Business logic, parser logic, shader logic |
-| `src/core/` | Pure contracts, domain rules, types | Expo imports, Skia imports, route params |
-| `src/features/` | Feature UI, hooks, screen composition | Direct vendor API calls |
-| `src/services/` | Orchestration, preview/export separation | UI components |
-| `src/adapters/` | Wrappers for Expo modules, Skia, EXIF | Business logic |
-| `packages/lut-core/` | LUT parse/validate/serialize/interpolate | React Native code, Expo imports |
-
-## Key Abstractions
-
-### EditState (Immutable, Renderer-Agnostic)
-- Defined in `src/core/edit-session/edit-state.ts`
-- Central model holding all edits: preset, adjustments, rotation, crop, region mask, framing, watermark
-- All fields `readonly`, constructed via `Object.freeze()`
-- **No Skia types** — intentionally renderer-agnostic
-
-### EditAction (Discriminated Union)
-- Defined in `src/core/edit-session/edit-action.ts`
-- 18 action types covering all edit operations
-- Consumed by `editor-reducer.ts` in features layer
-
-### Transform Pipeline
-- `src/core/image-pipeline/transform.ts` — discriminated union of pipeline ops
-- `src/core/image-pipeline/preview-request.ts` / `export-request.ts` — separate request types
-- **Preview ≠ Export**: Preview optimized for responsiveness (downscaled), export for full resolution
-
-### LutTable (Pure Math)
-- `packages/lut-core/src/model/lut-table.ts` — `Float32Array`-backed LUT storage
-- Parse → validate → create table → serialize pipeline
-- Supports `.cube` (text) and HaldCLUT PNG (pixel data) formats
+| Layer | Can import from | Must NOT import from |
+|-------|-----------------|---------------------|
+| `app/` | `@features/*`, `@theme`, `@i18n` | `@core/*`, `@services/*`, `@adapters/*` directly |
+| `src/features/` | `@core/*`, `@services/*`, `@adapters/*`, `@ui/*`, `@theme` | Vendor packages directly |
+| `src/services/` | `@core/*`, `@adapters/*`, `@lut-core` | `@features/*`, `@ui/*`, React components |
+| `src/adapters/` | `@core/*`, vendor packages | `@features/*`, `@services/*` |
+| `src/core/` | `@lut-core` | Expo, Skia, RN, route params |
+| `packages/lut-core/` | Nothing external | React Native, Expo, Skia |
 
 ## Data Flow
 
-### Photo Edit Flow
+### Single Photo Edit Flow
+
 ```
-Image Picker → ImageAsset → EditState → PreviewRequest → Skia Canvas
-                                ↓
-                         [user edits via EditActions]
-                                ↓
-                         ExportRequest → Image Manipulator → Media Library
+User picks photo (ImagePicker)
+  → app/index.tsx routes to editor/[assetId]
+    → EditorScreen creates EditState (immutable)
+      → useEditorSession manages History<EditState>
+        → buildPreviewRequest(state) → renderPreview() → PreviewCanvas
+        → on export: buildExportRequest(state) → renderExport() → save to gallery
 ```
 
-### LUT Import Flow
-```
-Document Picker → File System → cube-parser → LutTable → ImportedLutRecord → AsyncStorage
-                                 (or)
-                 Image Picker → hald-parser → LutTable → ImportedLutRecord → AsyncStorage
-```
+### Key Data Types
 
-### Rendering Pipeline
-```
-EditState → buildPreviewRequest() → Transform[] → Skia Shaders → Canvas
-                                                    ↓
-                                             LUT_APPLY_SHADER
-                                             MASK_SHADER
-                                             FRAME_SHADER
-```
+| Type | Location | Role |
+|------|----------|------|
+| `EditState` | `src/core/edit-session/edit-state.ts` | Immutable snapshot of all edits (LUT, adjustments, crop, rotation, blend, watermark, etc.) |
+| `EditAction` | `src/core/edit-session/edit-action.ts` | Discriminated union of all edit operations (26 action types) |
+| `History<T>` | `src/core/edit-session/history.ts` | Undo/redo stack: `{ past, present, future }` |
+| `EditorState` | `src/features/editor/editor-reducer.ts` | UI state wrapping History + loading/error |
+| `PreviewRequest` / `ExportRequest` | `src/core/image-pipeline/` | Renderer-agnostic transform pipeline specs |
+| `LutTable` | `packages/lut-core/src/model/` | Parsed LUT data (`{ size, data: Float32Array }`) |
+
+### Preview vs. Export Pipeline (Critical Invariant)
+
+| Aspect | Preview | Export |
+|--------|---------|--------|
+| Max dimension | 1080px | 8192px |
+| Quality | 0.8 (80%) | Configurable (high/medium/low) |
+| Source | Downscaled URI | Original full-resolution URI |
+| Service | `preview-render.service.ts` | `export-render.service.ts` |
+| Reuse | **Never reuse** preview bitmap for export | Always re-process from original |
+
+## State Management
+
+- **No global state library** — React's `useReducer` pattern throughout
+- `editorReducer` handles all edit state transitions via `EditAction` dispatch
+- State is immutable — `Object.freeze()` on initial state, spread operators for updates
+- History (undo/redo) managed through pure `pushHistory/undoHistory/redoHistory` functions
+- Draft persistence: serialize `History<EditState>` to JSON on `expo-file-system`
+
+## Error Architecture
+
+Typed error hierarchy in `src/core/errors/`:
+
+| Error File | Covers |
+|-----------|--------|
+| `import-errors.ts` | File too large, unsupported format, read failure |
+| `export-errors.ts` | Dimension too large, OOM, write failure, permission denied |
+| `lut-errors.ts` | Malformed .cube, unsupported size, parse failure |
+| `render-errors.ts` | Shader compile failure, runtime error |
+| `error-messages.ts` | User-facing copy for all error types |
 
 ## Entry Points
 
 | Entry | File | Purpose |
 |-------|------|---------|
-| App entry | `app/_layout.tsx` | RootLayout: SafeAreaProvider → ThemeProvider → Stack |
-| Home | `app/index.tsx` | Landing screen |
-| Editor | `app/editor/[assetId].tsx` | Dynamic route for photo editing |
-| Import | `app/import/index.tsx` | Image import screen |
-| Export | `app/export/index.tsx` | Export screen |
-| Presets | `app/presets/index.tsx` | Preset browser screen |
-| Settings | `app/settings/index.tsx` | App settings |
+| App root | `app/_layout.tsx` | SafeAreaProvider → ThemeProvider → Stack navigator |
+| Home screen | `app/index.tsx` → `src/features/home/home.screen.tsx` | Draft grid + navigation |
+| Editor | `app/editor/[assetId].tsx` → `src/features/editor/editor.screen.tsx` | Main editing experience |
+| Import | `app/import/index.tsx` | Image/LUT import routing |
+| Export | `app/export/index.tsx` | Image/LUT export routing |
+| Presets | `app/presets/index.tsx` | Preset LUT browser |
+| Settings | `app/settings/index.tsx` | App preferences |
+| Batch | `app/batch/index.tsx` | Batch photo processing |
 
-## State Management
+## GPU Rendering (Skia)
 
-- **No global state library** — React state + useReducer per feature
-- **Edit session**: `useEditorSession` hook wraps reducer + undo/redo history
-- **Persistence**: AsyncStorage for imported LUTs, preferences, recent items
-- **Theme**: React Context via `ThemeProvider` in `src/theme/use-theme.tsx`
+Skia integration follows a multi-level approach:
 
-## Error Architecture
+1. **Shader Sources** (`adapters/skia/shader-sources.ts`) — SkSL code for LUT, mask, frame effects
+2. **Specialized Shaders** — `artistic-look-shader.ts` (color matrix + vignette + grain), `clarity-shader.ts` (Laplacian sharpness)
+3. **Runtime Effect Factory** — Compiles SkSL → Skia RuntimeEffect
+4. **Preview Canvas** — React component with Skia `Canvas` + `Image` + blend layer compositing
+5. **Offscreen Render** — GPU export without visible canvas
 
-Typed error classes with i18n-ready messages:
-- `ImportImageError` (`src/core/errors/import-errors.ts`)
-- `RenderError` (`src/core/errors/render-errors.ts`)
-- `ExportError` (`src/core/errors/export-errors.ts`)
-- `LutError` (`src/core/errors/lut-errors.ts`)
+### LUT Application (Currently Placeholder)
 
-Each error carries: `code` (machine-readable), `message` (developer), `userMessageKey` (i18n key).
-
-## i18n Architecture
-
-- i18next + react-i18next
-- Two locales: English (`en.ts`) and Vietnamese (`vi.ts`)
-- Default language: Vietnamese (`'vi'`)
-- v1 UI ships English-only per product direction, but i18n infrastructure is ready
+The LUT shader in `shader-sources.ts` contains a **placeholder** for strip texture lookup (tagged "Wave 4"). The actual GPU LUT application is not yet wired — preview currently uses CPU-side image manipulation only.
