@@ -72,6 +72,13 @@ describe('draft-store', () => {
       throw new Error("File 'file:///documents/drafts/asset-1.json' could not be found");
     });
     await expect(loadDraft('asset-1')).resolves.toBeNull();
+
+    readFileAsText.mockImplementationOnce(async () => {
+      throw new Error(
+        "File 'file:///documents/drafts/index.json' is not readable"
+      );
+    });
+    await expect(listDrafts()).resolves.toEqual([]);
   });
 
   it('round-trips custom LUT data and keeps JSON storage serializable', async () => {

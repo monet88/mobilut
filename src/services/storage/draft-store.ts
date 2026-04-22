@@ -35,7 +35,7 @@ function isMissingFileError(error: unknown): boolean {
     return false;
   }
 
-  return /ENOENT|does not exist|could not be found|no such file/i.test(error.message);
+  return /ENOENT|does not exist|could not be found|no such file|not readable/i.test(error.message);
 }
 
 function serializeEditState(state: EditState): SerializedEditState {

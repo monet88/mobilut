@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 
 import { getPreferences, setPreference, type AppPreferences } from '@services/storage';
 import { Button, Text } from '@ui/primitives';
@@ -13,6 +14,7 @@ const EXPORT_QUALITY_OPTIONS = [
 ] as const;
 
 export function SettingsScreen(): React.JSX.Element {
+  const router = useRouter();
   const [preferences, setPreferences] = React.useState<AppPreferences | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -138,7 +140,8 @@ export function SettingsScreen(): React.JSX.Element {
 
       <Button
         label={isSaving ? t('common.loading') : t('common.done')}
-        disabled
+        disabled={isSaving}
+        onPress={() => router.back()}
         variant="secondary"
       />
     </ScrollView>
