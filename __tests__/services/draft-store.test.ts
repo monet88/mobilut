@@ -6,8 +6,16 @@ const mockFileMap = new Map<string, string>();
 const DRAFTS_DIR = 'file:///documents/drafts/';
 const INDEX_FILE = `${DRAFTS_DIR}index.json`;
 
+function getDraftStorageKey(assetId: string): string {
+  if (/^[A-Za-z0-9._-]+$/.test(assetId)) {
+    return assetId;
+  }
+
+  return `unsafe~${encodeURIComponent(assetId).replace(/%/g, '_')}`;
+}
+
 function getDraftFile(assetId: string): string {
-  return `${DRAFTS_DIR}${encodeURIComponent(assetId)}.json`;
+  return `${DRAFTS_DIR}${getDraftStorageKey(assetId)}.json`;
 }
 
 function createDraftRecord(
@@ -168,5 +176,34 @@ describe('draft-store', () => {
       expect.objectContaining({ assetId: 'asset-2', updatedAt: 2 }),
     ]);
     await expect(loadDraft('asset-1')).resolves.toBeNull();
+  });
+
+  it('uses a filesystem-safe draft key when the asset id falls back to a file URI', async () => {
+    const assetId =
+      'file:///data/user/0/com.anonymous.lutapp/cache/ImagePicker/d3c4e1e8-031f-4a4f-81b2-53c9e1c96128.jpeg';
+
+    await saveDraft(
+      createDraftRecord(assetId, 1, {
+        summary: {
+          assetId,
+          assetUri: assetId,
+          previewUri: assetId,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      }),
+    );
+
+    const storedPath = getDraftFile(assetId);
+    expect(storedPath.replace(DRAFTS_DIR, '')).not.toContain('/');
+    expect(mockFileMap.has(storedPath)).toBe(true);
+    await expect(loadDraft(assetId)).resolves.toEqual(
+      expect.objectContaining({
+        summary: expect.objectContaining({
+          assetId,
+          assetUri: assetId,
+        }),
+      }),
+    );
   });
 });

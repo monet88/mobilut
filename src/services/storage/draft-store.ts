@@ -26,8 +26,16 @@ interface SerializedDraftRecord {
 const DRAFTS_DIR = `${getDocumentDirectory()}drafts/`;
 const INDEX_FILE = `${DRAFTS_DIR}index.json`;
 
+function draftStorageKey(assetId: string): string {
+  if (/^[A-Za-z0-9._-]+$/.test(assetId)) {
+    return assetId;
+  }
+
+  return `unsafe~${encodeURIComponent(assetId).replace(/%/g, '_')}`;
+}
+
 function draftFile(assetId: string): string {
-  return `${DRAFTS_DIR}${encodeURIComponent(assetId)}.json`;
+  return `${DRAFTS_DIR}${draftStorageKey(assetId)}.json`;
 }
 
 function isMissingFileError(error: unknown): boolean {

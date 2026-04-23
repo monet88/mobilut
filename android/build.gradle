@@ -17,7 +17,14 @@ buildscript {
     dependencies {
         classpath('com.android.tools.build:gradle')
         classpath('com.facebook.react:react-native-gradle-plugin')
-        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+    }
+    configurations.classpath.resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == "org.jetbrains.kotlin" &&
+            details.requested.name.startsWith("kotlin-gradle-plugin")) {
+            details.useVersion(rootProject.ext.kotlinVersion)
+            details.because("Align Kotlin Gradle plugin with Compose compiler 1.5.15")
+        }
     }
 }
 
@@ -37,5 +44,21 @@ allprojects {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
+    }
+}
+
+subprojects { subproject ->
+    if (subproject.name == "app") {
+        subproject.configurations.configureEach { configuration ->
+            if (configuration.name == "debugRuntimeClasspath" || configuration.name == "releaseRuntimeClasspath") {
+                configuration.resolutionStrategy.eachDependency { details ->
+                    if (details.requested.group == "androidx.core" &&
+                        (details.requested.name == "core" || details.requested.name == "core-ktx")) {
+                        details.useVersion("1.15.0")
+                        details.because("AGP 8.6 / compileSdk 35 compatibility for Expo SDK 52 stack")
+                    }
+                }
+            }
+        }
     }
 }
