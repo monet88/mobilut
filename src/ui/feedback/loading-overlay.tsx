@@ -13,8 +13,12 @@ export interface LoadingOverlayProps {
 export function LoadingOverlay({
   visible,
   message = 'Loading…',
-}: LoadingOverlayProps): React.JSX.Element {
+}: LoadingOverlayProps): React.JSX.Element | null {
   const theme = useTheme();
+
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Modal animationType="fade" transparent visible={visible}>

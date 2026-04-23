@@ -149,6 +149,8 @@ describe('EditorScreen', () => {
     expect(screen.getByText('Log')).toBeTruthy();
     expect(screen.getByText('Export')).toBeTruthy();
     expect(screen.getByText('Blend')).toBeTruthy();
+    expect(screen.getByLabelText('Undo edit')).toBeTruthy();
+    expect(screen.getByLabelText('Redo edit')).toBeTruthy();
 
     fireEvent.press(screen.getByText('Blend'));
 
@@ -158,15 +160,17 @@ describe('EditorScreen', () => {
     });
   });
 
-  it('keeps rotation controls reachable from the crop sheet', async () => {
+  it('opens a dedicated crop workspace with transform actions', async () => {
     const screen = renderEditorScreen();
 
     fireEvent.press(screen.getByText('Crop'));
 
     await waitFor(() => {
-      expect(screen.getByText('Rotate')).toBeTruthy();
-      expect(screen.getByText('Rotate CCW')).toBeTruthy();
-      expect(screen.getByText('Rotate CW')).toBeTruthy();
+      expect(screen.getByText('Transform & Crop')).toBeTruthy();
+      expect(screen.getByLabelText('Rotate counterclockwise')).toBeTruthy();
+      expect(screen.getByLabelText('Rotate clockwise')).toBeTruthy();
+      expect(screen.getByLabelText('Done cropping')).toBeTruthy();
+      expect(screen.getByLabelText('Close crop workspace')).toBeTruthy();
     });
   });
 
