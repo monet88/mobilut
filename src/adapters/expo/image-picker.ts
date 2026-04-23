@@ -60,6 +60,12 @@ function toImageAsset(asset: ImagePicker.ImagePickerAsset): ImageAsset {
 
 export async function pickImageFromLibrary(): Promise<ImageAsset | null> {
   try {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      throw ImportErrors.PERMISSION_DENIED();
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 1,
